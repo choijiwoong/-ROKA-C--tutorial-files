@@ -1,0 +1,2 @@
+C언어에서 추가된 개념정리: https://blog.hexabrain.net/159?category=402649
+씹어먹는 C++: https://modoocode.com/135
