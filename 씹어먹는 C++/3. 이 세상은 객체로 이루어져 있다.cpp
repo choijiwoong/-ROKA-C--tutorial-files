@@ -76,7 +76,82 @@ int main() {
   animal.view_stat();
   return 0;
 }
-
-만일 멤버 변수들도 public 으로 공개해버리면 어떨까요. 그러면 main 함수에서 마치 예전에 구조체를 사용했던 것 처럼
-검색해서 이어서 공부! 
 */
+
+//3. 생각 해볼 문제
+#include <iostream>
+
+class Date{
+	int year_;
+	int month_;//1 to 12
+	int day_;//1 to 31
+	
+	public:
+		int return_day_by_month(int i){//즁아,,,이거슨 파이썬이 아닌거시여!!!!! 
+			if (i==2){
+				return 28;
+			}
+			
+			//int *array=new int[7]; 얜 와 안되누  
+			int array[7]={1,3,5,7,8,10,12};
+			
+			for(int m=0;m<7;m++){//알겠어??? :가 아니라 {}라고오오오구마엔 사이다 
+				if(array[m]==i){
+					//delete[] array;
+					return 31;
+				}
+			}
+			
+			//delete[] array;
+			return 30;
+		}
+		
+		void SetDate(int year, int month, int day){
+			year_=year;
+			month_=month;
+			day_=day;
+		}
+		
+		void AddDay(int inc){
+			//초과하는 경우 
+			if (return_day_by_month(month_)<day_+inc){
+				month_+=1;
+				day_=day_+inc-return_day_by_month(month_);
+			}
+			//일반적인 경우 
+			else{
+				day_+=inc;
+			}
+		}
+				
+		void AddMonth(int inc){
+			//초과하는 경우
+			if (month_+inc>12){
+				year_+=1;
+				month_=month_+inc-12;
+			}
+			else
+				month_=month_+inc;
+		}
+		
+		void AddYear(int inc){
+			year_+=inc;
+		}
+		
+		void ShowDate(){
+			std::cout<<year_<<"년 "<<month_<<"월 "<<day_<<"일 입니다."<<std::endl;
+		}
+			
+};
+
+int main(){
+	Date test;
+	test.SetDate(2021,7,21);
+	test.ShowDate();
+	test.AddDay(11);
+	test.ShowDate();
+	test.AddMonth(6);
+	test.AddYear(3);
+	test.ShowDate();
+}
+ 
