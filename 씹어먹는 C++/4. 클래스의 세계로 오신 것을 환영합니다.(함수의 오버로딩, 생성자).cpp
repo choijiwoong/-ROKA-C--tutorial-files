@@ -340,6 +340,7 @@ class Point {//클래스 Point정의
   void View(){//좌표 뷰어 함수 
   	std::cout<<"x: "<<x<<", y: "<<y<<std::endl;
   }
+  
 };
 
 class Geometry {//점들을 연산할 클래스 Geometry정의. 
