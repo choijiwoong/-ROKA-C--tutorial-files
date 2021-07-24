@@ -287,6 +287,47 @@ class string{
 		void copy_string(const string &s);//str에 s를 복사한다.
 		int strlen();//문자열 길이 리턴 
 }; 
+string::string(char c, int n){//하나의 문자x size 문자열 
+	len=n;
+	str=new char[n];
+	for(int i=0;i<n;i++)
+	str[i]=c;
+}
+string::~string(){
+	if (str!=NULL)
+	delete[] str;
+}
+string::string(const char *s){//포인터로 전달 
+	int i;
+	for(i=0;s[i]!='\n';i++){}//아니면 null? null로하니 경고뜨던뎀 연산에 null썼다구 
+	len=i;//길이저장
+	str=new char[len];
+	for(int m=0;m<len;m++){
+		str[m]=s[m];
+	} 
+}
+string::string(const string &s){//같은 클래스가 들어왔다. 복사때 사용하는 듯 이아니라 ㄹㅇ 복사생성자넴 ㅋㅋㄹㅃㅃ 
+	len=s.strlen();//미완 
+	str=new char[len];
+	for(int i=0;i<len;i++){//strcpy쓰기엔 좀 그러자너..hmm.. 
+		str[i]=s[i];
+	}
+}
+void string::add_string(const string &s){//미완 
+	len+=s.strlen();
+	str=new char[len];//버퍼만들어야하나? 
+} 
+void string::copy_string(const string &s){//미완 
+	str=new char[s.strlen()];
+	len=s.strlen();
+	for(int i=0;i<len;i++){
+		str[i]=s[i];
+	}
+}
+int string::strlen(){
+	return len;
+}
+
 
 int main(){
 	
