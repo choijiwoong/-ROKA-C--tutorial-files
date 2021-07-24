@@ -202,7 +202,8 @@ class A{
 	
 	public:
 		A(int c):x(c) {}//initializer list
-		A(const A& a){
+		//3. x가 10으로. 
+		A(const A& a){//7.temp에 b'a'a가 들어가며 1회 호출 
 			x=a.x;//대입 복사. 
 			std::cout<<"복사 생성"<<std::endl;
 		}
@@ -213,16 +214,24 @@ class B{
 	
 	public:
 		B(int c):a(c) {}//initializer list
+		//2. b'a에 10 
 		B(const B& b): a(b.a) {}//B's copy constructor
-		A get_a(){//반환형이 A이고, get_a()로 호출. 
+		A get_A(){//반환형이 A이고, get_a()로 호출. 
+		//5. 호출 
 			A temp(a);//A클래스를 가지는 객체 temp를 생성하는데, a가 인수임. 
+			//6.새 A인 temp에 a를 넣음.->클래스를 넣었기에 복사생성자 호출 
 			return temp;//temp객체를 리턴함. 
+			//8. A클래스 temp를 반환 
 		}
 };
 
 int main() {
-  B b(10);
+  B b(10);//1. b에 10 
 
   std::cout << "---------" << std::endl;
-  A a1 = b.get_A();
+  A a1 = b.get_A();//4. a1에 b.get_A()대입 
+  //5. A a1=temp;와 같아짐. 복사생성자 2번째 호출 
+  return 0; 
 }
+//근데 1번만 호출되넴 띠용... ->C++ 컴파일러는 불필요한 복사를 막기 위해 _copy elision_이라는 기술을 사용하고 있는데,
+//이는 추후에 설명. http://en.wikipedia.org/wiki/Copy_elision
