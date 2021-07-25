@@ -1,8 +1,7 @@
-//1. 문자열 클래스를 만들자.
 #include <iostream>
 #include <string.h>//only for strlen. if you make strlen function, it's not needed. 
 
-class MyString{//private로 설정해두고, 모든 작업을 수행할 수 있는 함수를 만들어야 한다. _encapsulation
+class MyString{//set variables to private, we have to make function that can do any works. _encapsulation
 	char* string_content;//pointer that locate string data
 	int string_length;//string length_it's not need 'NULL' because we can check the end of string thanks to strign_lengh
 	int memory_capacity;//how many memory is used?
@@ -48,6 +47,9 @@ class MyString{//private로 설정해두고, 모든 작업을 수행할 수 있는 함수를 만들어�
 		int find(int find_from, MyString& str) const;//Like insert func
 		int find(int find_from, const char* str) const;
 		int find(int find_from, char c) const;
+		
+		//compare function
+		int compare(const MyString& str) const; 
 }; 
 MyString::MyString(char c){
 	string_content=new char[1];
@@ -177,6 +179,10 @@ MyString& MyString::insert(int loc, const MyString& str){
 }
 MyString& MyString::erase(int loc, int num){//not need think about capacity.
 	if(num<0||loc<0||loc>string_length) return *this;
+	else if(num+loc>memory_capacity){//Let's think 1. sol;
+		string_length=0;
+		return *this;
+	}
 	//erase means just pulling back string to front
 	for(int i=loc+num;i<string_length;i++){
 		string_content[i-num]=string_content[i];
@@ -184,12 +190,43 @@ MyString& MyString::erase(int loc, int num){//not need think about capacity.
 	string_length-=num;
 	return *this;
 }
-int MyString::find(int find_from, MyString& str) const{
-	int i, j;
-	if(str.string_length==0) return -1;
-	
+int MyString::find(int find_from, MyString& str) const{//find str in range(find_from to last char)
+	int i, j;//loop variables for save value
+	if(str.string_length==0) return -1;//if str is empty
+	for(i=find_from; i<=string_length-str.string_length;i++){//find start point set in loop
+		for(j=0;j<str.string_length;j++){//char loop for compare string(that is made by char array)
+			if(string_content[i+j]!=str.string_content[j]) //find_from~find_from+str.length, str_content
+				break;//if not find, break for and goto next for to find_from+1
+		}
+		
+		if(j==str.string_length)//if no break for j loop, 
+			return i;//return i that locate result
+	}
+	return -1;//fail to find(can't return i untill all for loop)
 }
-
+int MyString::find(int find_from, const char* str) const{
+	MyString temp(str);
+	return find(find_from, temp);
+}
+int MyString::find(int find_from, char c) const{
+	MyString temp(c);
+	return find(find_from, temp);
+}
+int MyString::compare(const MyString& str) const{
+	//execute (*this)-(str) and return result as -1(this is after str in dictionaryily), 0(same), 1(else).
+	for(int i=0; i<std::min(string_length, str.string_length);i++){//standard min function used in iostream.
+		if(string_content[i]>str.string_content[i])
+			return 1;
+		else if (string_content[i]<str.string_content[i])
+			return -1;
+	}
+	//if not executed return, then it means same before first part.
+	//if length is same too, then it means completely same.
+	if(string_length==str.string_length) return 0;
+	else if(string_length>str.string_length)
+		return 1;//more length means after small length.
+	return -1;//else.
+}
 
 int main() {
   MyString str1("hello world!");
@@ -212,18 +249,31 @@ int main() {
   
   std::cout<<"str3's char in 3place:   "<<str3.at(3)<<std::endl;
   
+  //insert test
   MyString str4("<some string inserted between>");
   str3.insert(5,str4);
   str3.println();
-  
   std::cout<<"Capacity : "<<str3.capacity()<<std::endl;//enough capacity
   std::cout<<"String length : "<<str3.length()<<std::endl;
   
-  str3.erase(1,2);
-  str3.println();
+  //erase test
+  str3.erase(1,200);//make over erase error
+  str3.println();//check sol
   std::cout<<"Capacity : "<<str3.capacity()<<std::endl;//enough capacity
   std::cout<<"String length : "<<str3.length()<<std::endl;
   
+  //find test
+  MyString str5("this is a very very long string");
+  std::cout << "Location of first <very> in the string : " << str5.find(0, "very")
+       << std::endl;
+  std::cout << "Location of second <very> in the string : "
+       << str5.find(str5.find(0, "very") + 1, "very") << std::endl;//application of find in next find case.
+  
+  //compare test
+  MyString str6("abcdef");//str6 is bigger than str7
+  MyString str7("abcde");
+  std::cout << "str6 and str7 compare : " << str6.compare(str7) << std::endl;
+ 
   return 0;
 }
 
@@ -258,4 +308,23 @@ int main() {
 [5. find 함수]
 1.	문자열의 크기가 크다면 엄청 오래 걸릴 수 있는 함수이다. 
 2.	문자열을 검색하는 알고리즘은 많지만, 어떤 상황에 대해 좋은 성능을 발휘하는 알고리즘은 없다. 
+3.	다음 또 나오는 위치를 반환할 때는, 앞의 결괏값에+1한 위치에서 탐색을 돌리면 된다. 
+[6. 크기 비교 함수 'compare']
+1.	비교: 사전식으로 배열해서 어떤 문자열이 더 뒤에 오는지 판단한다는 의미이다.
+2.	이 함수를 이용하여 문자열 전체를 정렬하는 함수라던디, strcmp같은 함수등으로 지원하는 기능을 그대로 사용할 수 있게 된다.
+
+[7. MyString class provides these interface]
+1. Constructor or copy constructor that can use c or str in C language type
+2. Length() that it return strlen
+3. Assign() that assign new str
+4. Reserve() that reserve memory we can use, Capacity() that get size of memory already allocated
+5. At() that return char in special location
+6. Insert() that can insert special string to special location
+7. Erase() that erase chars in special location
+8. Find() that search special string after special location
+9. Compare() that compare two string dictionarily.
+
+[8. 생각해보기]
+1. how to solve bug in erase() when user delete str over string_length->solved!
+2. Make find function using other search algoritm like KMP, Boyer-Moore->pass! hahaha 내맘임. 
 */ 
