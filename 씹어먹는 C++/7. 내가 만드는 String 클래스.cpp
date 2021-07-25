@@ -35,6 +35,19 @@ class MyString{//private로 설정해두고, 모든 작업을 수행할 수 있는 함수를 만들어�
 		
 		//return char in random location
 		char at(int i) const;
+		
+		//string insert function
+		MyString& insert(int loc, const MyString& str);//MyString type
+		MyString& insert(int loc, const char* str);//char[] type_it will be coded by MyString type function
+		MyString& insert(int loc, char c);//char type_too.
+		
+		//erase function
+		MyString& erase(int loc, int num); 
+		
+		//find function
+		int find(int find_from, MyString& str) const;//Like insert func
+		int find(int find_from, const char* str) const;
+		int find(int find_from, char c) const;
 }; 
 MyString::MyString(char c){
 	string_content=new char[1];
@@ -112,6 +125,71 @@ char MyString::at(int i) const{
 	else
 		return string_content[i];
 }
+MyString& MyString::insert(int loc, const char* str){//use insert function
+	MyString temp(str);//change to MyString object
+	return insert(loc, temp);
+}
+MyString& MyString::insert(int loc, char c){
+	MyString temp(c);
+	return insert(loc, temp);
+}
+MyString& MyString::insert(int loc, const MyString& str){
+	//except out range case
+	if(loc<0||loc>string_length) return *this;
+	//In case, over capacity.
+	if(string_length+str.string_length>memory_capacity){
+		if(memory_capacity*2>string_length+str.string_length)//less thean memory*2==small char. capacity x2 for prevent repeat insert
+			memory_capacity*=2;
+		else//new memory allocation
+			memory_capacity=string_length+str.string_length;
+		
+		char* prev_string_content=string_content;//backup
+		string_content=new char[memory_capacity];//allocation_as capacity
+		
+		//copy content before insert part
+		int i;
+		for(i=0;i<loc;i++){
+			string_content[i]=prev_string_content[i];
+		}
+		//add insert string
+		for(int j=0;j!=str.string_length;j++){
+			string_content[i+j]=str.string_content[j];
+		}
+		//copy last part
+		for(;i<string_length;i++){
+			string_content[str.string_length+i]=prev_string_content[i];
+		}
+		
+		delete[] prev_string_content;
+		
+		string_length=string_length+str.string_length;
+		return *this;
+	} 
+	//else case(not need new allocation)_for efficiency, push left parts first.
+	for(int i=string_length-1;i>=loc;i--)//push to back without delete thanks to enough capacity.
+		string_content[i+str.string_length]=str.string_content[i];
+	//insert string
+	for(int i=0;i<str.string_length;i++)
+		string_content[i+loc]=str.string_content[i];
+		
+	string_length=string_length+str.string_length;
+	return *this;
+}
+MyString& MyString::erase(int loc, int num){//not need think about capacity.
+	if(num<0||loc<0||loc>string_length) return *this;
+	//erase means just pulling back string to front
+	for(int i=loc+num;i<string_length;i++){
+		string_content[i-num]=string_content[i];
+	}
+	string_length-=num;
+	return *this;
+}
+int MyString::find(int find_from, MyString& str) const{
+	int i, j;
+	if(str.string_length==0) return -1;
+	
+}
+
 
 int main() {
   MyString str1("hello world!");
@@ -132,7 +210,19 @@ int main() {
   str3.assign("very long string");//because computer don't know 1000bites is already allocate, it reallocate memory to store very long string.
   //sol. how many memory is allocated? -> Plus variable 'memory_capacity'.
   
-  std::cout<<str3.at(3)<<std::endl;
+  std::cout<<"str3's char in 3place:   "<<str3.at(3)<<std::endl;
+  
+  MyString str4("<some string inserted between>");
+  str3.insert(5,str4);
+  str3.println();
+  
+  std::cout<<"Capacity : "<<str3.capacity()<<std::endl;//enough capacity
+  std::cout<<"String length : "<<str3.length()<<std::endl;
+  
+  str3.erase(1,2);
+  str3.println();
+  std::cout<<"Capacity : "<<str3.capacity()<<std::endl;//enough capacity
+  std::cout<<"String length : "<<str3.length()<<std::endl;
   
   return 0;
 }
@@ -153,4 +243,19 @@ int main() {
 	capacity함수 등 여러 함수들을 추가할 수 있게 되었다. 
 2.	임의의 위치의 문자를 리턴하는 함수로 C언어에서 []로 구현되었을 때는, 구조상 범위를 벗어나는 위치에 대한
 	문자를 요구해도 처리할 수 밖에 없었지만(쓰레기 값), C++에서는 이러한 문제를 해결할 수 있다.  
+[3. 문자열 삽입하기(insert)]
+1.	이미 만들어놓은 함수를 이용하여 insert구현을 할 수 있지만, 빈번하게 사용된다는 점을 고려하여 따로 만들어두자. 
+2.	주로 insert를 사용하는 경우는, 작은 크기의 문자열들을 자주 집어넣는 경우이다. 그렇다면 만약 capacity 한계에 달한
+	문자열 클래스에 문자 a를 계속 추가한다면?
+	while(sone_condition){
+		str.insert(some_location,'a');
+	}
+	매번 메모리흫 해제하고 1큰 메모리를 할당하고,,,,하는 비효율의 반복이 발생한다.
+	즉 짜잘하게 insert하는 명령에서는 통 크게 메모리를 미리 reserver하는 작업이 필요하다.
+	 'insert 작업에서의 잦은 할당/해제를 피하기 위해 미리 메모리를 할당해놓기'와 '메모리를 할당해 놓되, 많은 자원을 낭비하지 않는다.'
+	 를 모두 만족시키기 위해, 현재크기의 두 배 정도를 할당해 놓으면 된다. _capacity control
+[4. erase 함수]<->insert 
+[5. find 함수]
+1.	문자열의 크기가 크다면 엄청 오래 걸릴 수 있는 함수이다. 
+2.	문자열을 검색하는 알고리즘은 많지만, 어떤 상황에 대해 좋은 성능을 발휘하는 알고리즘은 없다. 
 */ 
