@@ -1,130 +1,110 @@
 #include <iostream>
-//연한 사실이지만, 디폴트 인자들은 함수의맨 마지막 인자 부터 '연속적으로'만 사용할 수 있습니다. 왜냐하면 만일 우리가 디폴트 인자를
-class Array;
-class Int;
 
-class Array{
-	friend Int;
+namespace MyArray{//define namespace "MyArray"
+	class Array;//tell to compiler Array is in code.
+	class Int;
 	
-	const int dim;//tensor size. how deep? level.
-	int* size; //size[0]*size[1]*...*size[dim-1] array.(array[3][2][3]'s 323 save this array. size information.
-	
-	struct Address{//private struct. class in class. struct is class all element is public.
-		int level;//how deep
-		void* next;//next array(low tensor) address by type. pointer for access next element by +1 to next.
-	};
-	Address* top;//start point
-	
-	public:
-		Array(int dim, int* array_size);
-		Array(const Array &arr);
-		~Array();
+	class Array{
+		friend Int;//Int can access to Array's member
 		
-		void initialize_address(Address *current);//recursive function that's same 'deep first search'.
-		void delete_address(Address *current);
-		void copy_address(Address *dst, Address*src);
+		const int dim;//how deep tensor
+		int* size;//size[0]*size[1]*...*size[dim-1] size array. for size save.ex)Array[1][2][5]
 		
-		Int operator[](const int index);
-};
-Array::Array(const Array &arr):dim(arr.dim){//copy constructure.
-	size=new int[dim];
-	for(int i=0;i<dim;i++) size[i]=arr.size[i];
-	
-	top=new Address;//same process regardless of copy constructure. top is same. always.
-	top->level=0;//top set
-	
-	initialize_address(top);//make spaces processs till here.
-	
-	copy_address(top, arr.top);//content copy
-}
-Array::Array(int dim, int* array_size):dim(dim){//Constructor of Array class with initializer list.
-			size=new int[dim];//allocate size to dim.
-			for(int i=0;i<dim;i++) size[i]=array_size[i];//size saves how many tensors we make.
-			
-			top=new Address;//top set
-			top->level=0;
-			
-			initialize_address(top);//initialize start.
-		}
-void Array::initialize_address(Address *current){//argument type is pointer of Address structure. up to down.
-	if(!current) return;//exception empty
-	if(current->level==dim-1){//stop condition. rule2 in recursive function.
-		current->next=new int[size[current->level]];//current's next is allocated by Address structure 
-		return;//current->next is pointer.
-	}
-	current->next=new Address[size[current->level]];//size is member array that has user's input how many tensor we make.
-	for(int i=0;i!=size[current->level];i++){//added element(same dim, different poket) to pass same process.
-		(static_cast<Address *>(current->next)+i)->level=current->level+1;//current->next to Address(casting) and 
-		//new allocated address for Address can be accessed by +1 at initial memory location, and set level.
-		initialize_address(static_cast<Address *>(current->next)+i);//current->next is allocated by list as Address.
-	}//so +1 means next element of current->next. same dim, different element. amount of its is in size[]
-}
-void Array::delete_address(Address *current){
-	if(!current) return;//exception empty
-	for (int i=0; current->level<dim-1&&i<size[current->level];i++){//all
-		delete_address(static_cast<Address *>(current->next)+1);//Recursive function. 
-	}
-	if(current->level==dim-1){//is current is last level
-		delete[] static_cast<int *>(current->next);//int data is in last level. current->next has Address type. so we have to cast to int*
-	}
-	delete[] static_cast<Address *>(current->next);//until last level, Address deallocation.
-}
-void Array::copy_address(Address *dst, Address *src){
-	if(dst->level==dim-1){
-		for(int i=0;i<size[dst->level];i++)
-			static_cast<int *>(dst->next)[i]=static_cast<int *>(src->next)[i];//if we not use [i] and use just pointer, delete error.
-		return;
-	}
-	for(int i=0;i!=size[dst->level];i++){//for all element in same level.
-		Address *new_dst=static_cast<Address *>(dst->next)+1;//next's default set is void. so we has to cast to specific type before use.
-		Address *new_src=static_cast<Address *>(src->next)+1;//next location save
-		copy_address(new_dst, new_src);//and recursive. for all data copy, use new Address.
-	}
-}
-Array::~Array(){//main process is work in Address, so we have to delete just left variables.
-	delete_address(top);//delete top that is root memory.
-	delete[] size;//delete size that is allocated list in member variable.
-}
-Int Array::operator[](const int index){//???
-	return Int(index, 1, static_cast<void *>(top), this);
-}
-
-class Int{
-		void* data;//content is same. for data
+		struct Address{
+			int level;
+			void* next;//In last level(dim-1 level), it locate data array(real data), and the others locate next Address array
+		};
 		
-		int level;//for level
-		Array* array;//Array object
+		Address* top;//top's Address define. for dim=0 that is root address of all process.
 		
 		public:
-			Int(int index, int _level=0, void *_data=NULL, Array *_array=NULL);//Wrapper
-			Int operator[](const int index);
-			operator int();
-};
-
-Int::Int(int index, int _level=0, void *_data=NULL, Array *_array=NULL)
-		:level(_level), data(_data), array(_array){//def default argument(it can use sequencly when its group at back)
-	if(_level<1||index>=array->size[_level-1]){//exception(top level, over index)
-		data=NULL;
-		return;
-	}
-	if(level==array->dim){//Int's level==array's dim
-		data=static_cast<void *>(//save our int tupe to data
-		static_cast<int *>  (static_cast<Array::Address *>(data)->next)  +index);
-	} else{//or save address to data
-		data=static_cast<void *>(//?????
-		static_cast<Array::Address *>  (static_cast<Array::Address *>(data)->next)  +index);
-	}
-};
-Int Int::operator[](const int index){
-	if(!data) return 0;
-	return Int(index, level+1, data, array);
-}
-Int::operator int(){
+			Array(int dim, int* array_size):dim(dim){//Constructor with initializer list for dim.
+				size=new int[dim];//allocation for save input data to Array object's size(member variable).
+				for(int i=0;i<dim;i++)
+					size[i]=array_size[i];//save array_size to object's size array.ex)array={1, 4, 5}; it means array[1][4][5]
+					
+				top=new Address;//initialize top. allocation.
+				top->level=0;//and set value to 0
+				
+				initialize_address(top);//pass top for process work to make space(array) that has size of array_size.
+			}
+			Array(const Array& arr): dim(arr.dim){//copy constructor(same process with constructor)
+				size=new int[dim];
+				for(int i=0;i<dim;i++)
+					size[i]=arr.size[i];
+				
+				top=new Address;
+				top->level=0;
+				
+				initialize_address(top);
+				copy_address(top, arr.top);//copy work.
+			}
+			void copy_address(Address* dst, Address* src){//recursive.
+				if(dst->level==dim-1){//escape condition
+					for(int i=0;i<size[dst->level];i++)//(modify ++i to i++)
+						static_cast<int*>(dst->next)[i]=static_cast<int*>(src->next)[i];//last level copy with type <int*>
+					return;//and return
+				}//if not last level(Address)
+				for(int i=0;i!=size[dst->level];i++){//for all tensor
+					Address* new_dst=static_cast<Address*>(dst->next)+i;//for all element of same level
+					Address* new_src=static_cast<Address*>(src->next)+i;
+					copy_address(new_dst, new_src);//recursive.
+				}
+			}
+			void initialize_address(Address* current){//recursive.
+				if(!current) return;//exception of empty
+				if(current->level==dim-1){//escape condition check
+					current->next=new int[size[current->level]];//get size data to Array.size[current->level] and allocation.
+					return;//last level's next means real space for saving data. so make allocation.
+				}
+				current->next=new Address[size[current->level]];//without last level, it's next means next Address location. so make allocation that has Array.size[current->level]. allocation type is Address. not Address*.
+				//same allocation but different objext's next. *current next is allocated by Address "array".
+				for(int i=0;i!=size[current->level];i++){//for all element(that is Address) of current->next(that is Address array)_process to next step.
+					(static_cast<Address*>(current->next)+i)->level=current->level+1;//element's level set to current->level+1 that means next level. cast for access next by ->. cast is for making Adress* because current->next's is allocated to Address. not Address*
+					initialize_address(static_cast<Address*>(current->next)+i);//recursive. cast for make same to argument form that is Address* current. and cast it needed for distinguish of last level(int*) and the others level(Address*). prevent error.
+				}
+			}
+			void delete_address(Address* current){//recursive. depth-first search.
+				if(!current) return;//exception to empty.
+				for(int i=0;current->level<dim-1&&i<size[current->level];i++){//work condition(recursive)
+					delete_address(static_cast<Address*>(current->next)+i);//recursive.
+				}
+				if(current->level==dim-1){//last level
+					delete[] static_cast<int*>(current->next);//cast current->next to int* and delete[] allocated space.
+				}//if not last level, it means next Address*
+				delete[] static_cast<Address*>(current->next);//delete[] Address*
+			}//It's use work condition rather than escape condition. when work condition is back of this code, it call error because before work(recursive), it's already delete alloccation space so we can't access memory for delete.
+			Int operator[](const int index);//???
+			~Array(){//destructor for delete of Array object
+				delete_address(top);
+				delete[] size;
+			}
+	};
+	//still namespace
+	class Int{//int's Wrapper class. for access like int ex)arr[1][2]=3;
+		void* data;//for locating address when last level, we can just use it for int* array.
+		
+		int level;//will distinguish last level or the others
+		Array* array;
+		
+		public:
+			Int(int index, int _level=0, void* _data=NULL, Array* _array=NULL):level(_level), data(_data), array(_array){//constructor with initializer list. index is user's input ex)index=3 in [3] at array[7]. access location
+					if(_level<1||index>=array->size[_level-1]){//exception wroong input(over size index, no root location that is just address)
+						data=NULL;
+						return;
+					}
+					if(level==array->dim){//last level
+						data=static_cast<void*>((static_cast<int*>(static_cast<Array::Address*>(data)->next)+index));//Address* for use index. and cast int* and void*
+				} else{//not last level
+					data=static_cast<void*>(static_cast<Array::Address*>(static_cast<Array::Address*>(data)->next)+index);//Address* for use index. and cast Address* and void*_similar process.
+				}
+	};
 }
 
 int main(){
+	
 	return 0;
-} 
+}
 
 /*
 [1.	C++스타일의 캐스팅]
