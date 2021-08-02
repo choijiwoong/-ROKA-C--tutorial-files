@@ -1,8 +1,9 @@
 #include <iostream>
-
-namespace MyArray{//define namespace "MyArray"
+//그냥 우리가 arr[][][] 해주던 일을 그냥 for 문으로 하는 것에 불과하다는 점을 알 수 있습니다. 매우 간단하지요. 부터!!! 
+namespace MyArray{//define namespace "MyArray". All class is in namespace'MyArray'. it will make no problem when we define Array class in other library!
+	//main concentrating point is that two class is in using in same file. it means that ordering of define is very important. 
 	class Array;//tell to compiler Array is in code.
-	class Int;
+	class Int;//without these define, we can't use friend because compiler do not know exsist of class 'Int'
 	
 	class Array{
 		friend Int;//Int can access to Array's member
@@ -18,6 +19,64 @@ namespace MyArray{//define namespace "MyArray"
 		Address* top;//top's Address define. for dim=0 that is root address of all process.
 		
 		public:
+			class Iterator{//for reference of Array[2][5][7] without for(for(for(for(...))) by using iterator.
+				int* location;//{2,5,7};
+				Array* arr;
+				
+				friend Int;
+				
+				public:
+					Iterator(Array* arr, int* loc=NULL):arr(arr){//constructor ex)Array[4][5]->int loc={4,6}
+						location=new int[arr->dim];//allocate space tensor num. ex)2
+						for(int i=0;i!=arr->dim;i++)						  //ex)1~2
+							location[i]=(loc!=NULL ? loc[i]:0);//location[i]=loc[i] with exception of empty to set zero.
+					}
+					Iterator(const Iterator& itr):arr(itr.arr){//copy constructor with initializer list.
+						location=new int[arr->dim];//allocation_make space.
+						for(int i=0;i!=arr->dim;i++) location[i]=itr.location[i];//just copy
+					}
+					~Iterator() { delete[] location; }//destructor for delete storage.
+					Iterator& operator++(){//to make next element(for prefix operator)
+						if(location[0]>=arr->size[0]) return (*this);//exception for finish access. Normally, last element+1 of array means first element's address. but this method can't distinguish whether it is finish or not to compiler. so we choose other method if we reach last element of array, set virtual index that is not exsist in array._array[1][2]'s index will set [2,0] in Iterator class for express finish of calculate.
+						
+						bool carry=false;//In array[2][4], array[0][3]'s next is array[1][0]. it will be expressed by bool carry.
+						int i=arr->dim-1;//max index of location.
+						do{//???
+							location[i]++;//normal way for access next element. last index ++. main action of ++. anyway, we have to add +1 for operator++
+							
+							if(location[i]>=arr->size[i]&&i>=1){//when over size. when it need carry.
+								location[i]-=arr->size[i];//set zero
+								carry=true;//carry on
+								i--;//access point -- and later, +1 to location[i] in first part of do-while function. 
+							}else//we need no carry!
+							carry=false;
+						} while(i>=0&&carry);//escape condition => if i to -(finish) and no carry.
+						return (*this);//set
+					}
+					Iterator& operator=(const iterator* itr){//assign operator
+						arr=itr.arr;
+						location=new int[itr.arr->dim];
+						for(int i=0;i!=arr->dim;i++) location[i]=itr.location[i];
+						
+						return (*this);
+					}
+					Iterator operator++(int){//(for postfix operator)
+						Iterator itr(*this);//for calculate ++ work, it must be real Iterator object.
+						++(*this);//++work
+						return itr;//return
+					}
+					bool operator!=(const Iterator& itr){//rather same or not
+						if(itr.arr->dim!=arr->dim) return true;//different size pre execute. for delete trash calculattion.
+						for(int i=0;i!=arr->dim;i++){
+							if(itr.location[i]!=location[i])//different
+								return true;
+						}
+						
+						return false;//pass.
+					}
+					Int operator*();//???
+			};
+			
 			Array(int dim, int* array_size):dim(dim){//Constructor with initializer list for dim.
 				size=new int[dim];//allocation for save input data to Array object's size(member variable).
 				for(int i=0;i<dim;i++)
@@ -74,8 +133,8 @@ namespace MyArray{//define namespace "MyArray"
 				}//if not last level, it means next Address*
 				delete[] static_cast<Address*>(current->next);//delete[] Address*
 			}//It's use work condition rather than escape condition. when work condition is back of this code, it call error because before work(recursive), it's already delete alloccation space so we can't access memory for delete.
-			Int operator[](const int index);//???
-			~Array(){//destructor for delete of Array object
+			Int operator[](const int index);//seperate with member function for actually using of Int class. other member function is not needed Int's information access for modifying. So this function is main of using int class, we must define Int class infront of this function(operator[]). so for ordering, it is seperated with Array class for actual using.
+ 			~Array(){//destructor for delete of Array object
 				delete_address(top);
 				delete[] size;
 			}
@@ -94,15 +153,53 @@ namespace MyArray{//define namespace "MyArray"
 						return;
 					}
 					if(level==array->dim){//last level
-						data=static_cast<void*>((static_cast<int*>(static_cast<Array::Address*>(data)->next)+index));//Address* for use index. and cast int* and void*
+						data=static_cast<void*>((static_cast<int*>(static_cast<Array::Address*>(data)->next)+index));//Address* for use index. and cast int*(for + index? no.) and void* ???
 				} else{//not last level
 					data=static_cast<void*>(static_cast<Array::Address*>(static_cast<Array::Address*>(data)->next)+index);//Address* for use index. and cast Address* and void*_similar process.
 				}
 	};
+	
+	Int(const Int& i):data(i.data), level(i.level), array(i.array){}//copy constructor with initializer list.
+	
+	operator int(){//Type conversion operator for wrapper class
+		if(data) return *static_cast<int*>(data);//when Int call as wrapper, int's address value is in Int.data so just converse void* to int*
+		return 0;
+	}
+	Int& operator=(const int& a){//when Int(int b) with operator =, converse data to int* and calculate. 
+		if(data) *static_cast<int*>(data)=a;//if data is exist.
+		return *this;
+	}
+	Int operator[](const int index){//when Int used with [] like 'Int array[3]=2'
+		if(!data) return 0;//exception of empty
+		return Int(index, level+1,data,array);
+	}
+};
+Int Array::operator[](const int index){//Array's operator[] work
+	return Int(index, 1, static_cast<void*>(top), this);//내 주위에 감사한 사람들이 너무 많은데,,,연등하며 오늘따라 생각이 많구만! 
+}//Array[5][3]-> Int(5,1,~,this)[3]->Int(3,2,~,array)->(when array->dim==level)data save.->(wrapper) return <int*>(data)_maybe?
+Int Array::Iterator::operator*(){//pointer operator
+	Int start=arr->operator[](location[0]);//use Int object fully.
+	for(int i=1;i<=arr->dim-1;i++)
+		start=start.operator[](location[i]);//save all location data of Iterator to start object
+	return start;
 }
 
+}//namespace MyArray
+
 int main(){
+	int size[]={2,3,4};
+	MyArray::Array arr(3,size);//Array's constructor->initialize_address. *make space
 	
+	for(int i=0;i<2;i++)
+		for(int j=0;j<3;j++)
+			for(int k=0;k<4;k++)
+				arr[i][j][k]=(i+1)*(j+1)*(k+1);//save test
+	
+	for(int i=0;i<2;i++)
+		for(int j=0;j<3;j++)
+			for(int k=0;k<4;k++)
+				std::cout<<i<<" "<<j<<" "<<k<<" "<<arr[i][j][k]<<std::endl;//print
+				
 	return 0;
 }
 
