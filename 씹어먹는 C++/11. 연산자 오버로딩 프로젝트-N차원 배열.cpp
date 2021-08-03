@@ -1,5 +1,5 @@
 #include <iostream>
-//그냥 우리가 arr[][][] 해주던 일을 그냥 for 문으로 하는 것에 불과하다는 점을 알 수 있습니다. 매우 간단하지요. 부터!!! 
+
 namespace MyArray{//define namespace "MyArray". All class is in namespace'MyArray'. it will make no problem when we define Array class in other library!
 	//main concentrating point is that two class is in using in same file. it means that ordering of define is very important. 
 	class Array;//tell to compiler Array is in code.
@@ -53,7 +53,7 @@ namespace MyArray{//define namespace "MyArray". All class is in namespace'MyArra
 						} while(i>=0&&carry);//escape condition => if i to -(finish) and no carry.
 						return (*this);//set
 					}
-					Iterator& operator=(const iterator* itr){//assign operator
+					Iterator& operator=(const Iterator& itr){//assign operator
 						arr=itr.arr;
 						location=new int[itr.arr->dim];
 						for(int i=0;i!=arr->dim;i++) location[i]=itr.location[i];
@@ -138,6 +138,27 @@ namespace MyArray{//define namespace "MyArray". All class is in namespace'MyArra
 				delete_address(top);
 				delete[] size;
 			}
+			Iterator begin(){//Iterator initialize
+				int* arr=new int[dim];//new arr for allocation
+				for(int i=0;i!=dim;i++)
+					arr[i]=0;//copy
+					
+				Iterator temp(this, arr);//copy
+				delete[] arr;//deallocation
+				
+				return temp;//return
+			}
+			Iterator end(){//last shape is {x,0,0} x is already over normal value for expression of finish
+				int* arr=new int[dim];//new arr for allocation
+				arr[0]=size[0];//copy over value
+				for(int i=1;i<dim;i++)
+					arr[i]=0;//left value set 0
+					
+				Iterator temp(this, arr);//coopy
+				delete[] arr;//deallocation
+				
+				return temp;//return
+			}
 	};
 	//still namespace
 	class Int{//int's Wrapper class. for access like int ex)arr[1][2]=3;
@@ -175,7 +196,7 @@ namespace MyArray{//define namespace "MyArray". All class is in namespace'MyArra
 	}
 };
 Int Array::operator[](const int index){//Array's operator[] work
-	return Int(index, 1, static_cast<void*>(top), this);//내 주위에 감사한 사람들이 너무 많은데,,,연등하며 오늘따라 생각이 많구만! 
+	return Int(index, 1, static_cast<void*>(top), this);
 }//Array[5][3]-> Int(5,1,~,this)[3]->Int(3,2,~,array)->(when array->dim==level)data save.->(wrapper) return <int*>(data)_maybe?
 Int Array::Iterator::operator*(){//pointer operator
 	Int start=arr->operator[](location[0]);//use Int object fully.
@@ -186,21 +207,30 @@ Int Array::Iterator::operator*(){//pointer operator
 
 }//namespace MyArray
 
-int main(){
-	int size[]={2,3,4};
-	MyArray::Array arr(3,size);//Array's constructor->initialize_address. *make space
-	
-	for(int i=0;i<2;i++)
-		for(int j=0;j<3;j++)
-			for(int k=0;k<4;k++)
-				arr[i][j][k]=(i+1)*(j+1)*(k+1);//save test
-	
-	for(int i=0;i<2;i++)
-		for(int j=0;j<3;j++)
-			for(int k=0;k<4;k++)
-				std::cout<<i<<" "<<j<<" "<<k<<" "<<arr[i][j][k]<<std::endl;//print
-				
-	return 0;
+int main() {
+  int size[] = {2, 3, 4};
+  MyArray::Array arr(3, size);
+
+  MyArray::Array::Iterator itr = arr.begin();
+  for (int i = 0; itr != arr.end(); itr++, i++) (*itr) = i;
+  for (itr = arr.begin(); itr != arr.end(); itr++)
+    std::cout << *itr << std::endl;
+
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 4; k++) {
+        arr[i][j][k] = (i + 1) * (j + 1) * (k + 1) + arr[i][j][k];
+      }
+    }
+  }
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 4; k++) {
+        std::cout << i << " " << j << " " << k << " " << arr[i][j][k]
+                  << std::endl;
+      }
+    }
+  }
 }
 
 /*
