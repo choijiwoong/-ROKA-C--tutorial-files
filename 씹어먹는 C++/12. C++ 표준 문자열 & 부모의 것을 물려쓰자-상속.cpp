@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-//what 함수는 Base 에 정의가 되어 있기 때문에 Derived 의 s 가 아니라 Base 의 s 가 출력되어 "기반" 라고 나오게 되는 것입니다.
+
 /*1
 int main(){
 	//because of standard, it's defined in std._std::string(but it isn't only std::string depending on which library we use)
@@ -21,12 +21,13 @@ int main(){
 	return 0;
 } */
 
-/*2
+//*2
 class Employee{
-	std::string name;//name ex) Jimo
-	int age;//age ex) 17
-	std::string position;//opsition name ex) director
-	int rank;//high value == high position ex)5
+	protected://public in derived.
+		std::string name;//name ex) Jimo
+		int age;//age ex) 17
+		std::string position;//opsition name ex) director
+		int rank;//high value == high position ex)5
 	
 	public:
 		Employee(std::string name, int age, std::string position, int rank)
@@ -43,7 +44,7 @@ class Employee{
 		int calculate_pay(){  return 200+rank*50;  }
 };
 
-class Manager{
+/*class Manager{
 	std::string name;
 	int age;
 	std::string position;
@@ -65,6 +66,25 @@ class Manager{
 		void print_info(){
 			std::cout << name << " (" << position << " , " << age << ", "<< year_of_service 
 			<< "년차) ==> " << calculate_pay() << "만원"<< std::endl;
+		}
+};*/
+class Manager:public Employee{
+	int year_of_service;
+	
+	public:
+		Manager(std::string name, int age, std::string position, int rank, int year_of_service)//constructor with input as argument
+			:year_of_service(year_of_service), Employee(name, age, position, rank){}//and call Constructor of parent class with input argument
+		
+		Manager(const Manager& manager)//copy constructor
+			:Employee(manager.name, manager.age, manager.position, manager.rank){//it's function of inserting values at variables.
+		  year_of_service=manager.year_of_service;
+		}
+		
+		Manager():Employee(){}//default constructor
+		
+		int calculate_pay(){  return 200+rank*50+5*year_of_service;  }
+		void print_info(){
+			std::cout<<name<<" ("<<position<<" , "<<age<<", "<<year_of_service<<"년차) ==> "<<calculate_pay()<<"만원"<<std::endl;
 		}
 };
 
@@ -140,35 +160,43 @@ int main() {
   emp_list.add_employee(new Employee("길", 36, "인턴", -2));
   emp_list.print_employee_info();
   return 0;
-}*/
+}//*/
 
+/*3,4
 class Base{//base class
-	std::string s;
+	public:
+		std::string parent_string;
 	
 	public:
-		Base():s("기반"){  std::cout<<"기반 클래스"<<std::endl;  }//Constructor with initializer list. print message when constructor activate.
-		void what() {  std::cout<<s<<std::endl;  }//print s function in Base
+		Base():parent_string("기반"){  std::cout<<"기반 클래스"<<std::endl;  }//Constructor with initializer list. print message when constructor activate.
+		void what() {  std::cout<<parent_string<<std::endl;  }//print s function in Base
 }; 
 //derived class
-class Derived:public Base{//derive will be inherited with Base by public type
-	std::string s;
+class Derived:private Base{//derive will be inherited with Base by public type
+	std::string child_string;
 	
 	public:
-		Derived():Base(), s("파생"){//constructor. by Base(), it call Base()'s constructor and set initialize Derived's s.
+		Derived():Base(), child_string("파생"){//constructor. by Base(), it call Base()'s constructor and set initialize Derived's s.
 			std::cout<<"파생 클래스"<<std::endl;//if we don't define constructor, compiler call default constructor.
 			what();//there are no what() function in Derive so it call Base's what()function.
+			
+			//if can we access parent_string in Base with private?
+			parent_string="바꾸기";//error occur. so change Base's private to protected.->error solved.
 		}
+		void what(){  std::cout<<child_string<<std::endl;  }//if make what() in Derived too?
 };
 
 int main() {
    std::cout << " === 기반 클래스 생성 ===" <<  std::endl;
   Base p;//Base's Constructor
-
+	std::cout << p.parent_string << std::endl;//of course, parent_string can be access because of public.
+	
    std::cout << " === 파생 클래스 생성 ===" <<  std::endl;
   Derived c;//Base's Constructor in Derived's Constructor and call what() in Base class
+   std::cout << c.parent_string << std::endl;//error occur because inheritance type is private.
 
   return 0;
-}
+}*/
 
 /*
 [1.	표준 'string'클래스]
@@ -183,5 +211,20 @@ int main() {
 
 [3. 상속(Inheritance)]_...드디어 
 1.	Manager의 코드 자체가 Employee의 대부분을 포함하고 있는데, C++에서는 다른 클래스의 내용을 그대로 포함할 수 있게하는 작업을 가능케 하는데 이를 상속이라고 한다.
-2.	C++ 상속이 어떻게 사용될까? 
+2.	만약 같은 이름의 함수가 파생, 기반클래스에 있다고 하더라도, 실질적으로 다름 클래스에 정의되어 있는 것이기 때문에 다른 함수로 취급된다.
+	즉, 우선 Derived클래스에 What함수가 정의되어 있기 때문에 굳이 멀리 Base함수까지 뒤지지 않고, Derived클래스의 what()함수를 호출한다.
+	이것을 오버라이딩(Overriding)이라고 한다. 즉, Derived의 what함수가 Base의 what함수를 오버라이딩 한 것 이다.
+	!=오버로딩. 
+	
+[4. 새로운 친구 protected]
+1.	상속을 받아도 private 멤버 변수들은 어떠한 경우에도 자기 클래스 말고는 접근할 수 없다. 여기서 발생하는 문제는, Employee클래스를 기반으로 상속하여 Managee를 만든다고 하면,
+	이때 name이나 age이 Employee의 private멤버변수기 때문에 접근을 못하게 되는 문제가 발생한다. 
+	 이를 해결하기 위해 C++에서는 protected라는 public과 private의 중간 위치의 접근 지시자를 지원한다. 즉, 상속받는 클래스를 제외하고 모두 접근 불가능의 성질을 띄고 있다.
+	ㄷㄷ미친예시_private: 집비밀번호 protected: 집공동현관비밀번호 public: 집주소 
+2.	class Derived : public Base의 의미.
+	키워드가 public일 때, 기반 클래스의 접근 지시자들에 영향 없이 그대로 작동한다. 즉, public은 public으로, protected는 protected로, private는 private로 그대로 작동한다.
+	키워드가 protected라면, public이 protected로 바뀌고 나머지는 유지된다.
+	만약 private라면, 모두 private가 된다. 
+	
+[5. 사원 관리 프로그램에 적용해보기.]
 */
