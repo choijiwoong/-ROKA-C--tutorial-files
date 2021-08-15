@@ -39,7 +39,7 @@ class Table{
 		string stringify(const string& s);
 		string stringify(int row, int col);
 		//print table.
-		virtual string print_table()=0;//pure virtual function
+		virtual string print_table()=0;//pure virtual function **Table object can't be made!** it must inherit
 };
 Table::Table(int max_row_size, int max_col_size): max_row_size(max_row_size), max_col_size(max_col_size){
 	data_table=new Cell**[max_row_size];//Cell*'s array 
@@ -85,15 +85,61 @@ string Table::stringify(const string& s){
 	int col=s[0]-'A';
 	int row=atoi(s.c_str()+1)-1;
 	
-	if(row<max_row_size&&col<max_col_size){
-		if(data_table[row][col]){
+	if(row<max_row_size&&col<max_col_size){//correct range
+		if(data_table[row][col]){//is data
 			return data_table[row][col]->stringify();
 		}
 	}
 	return 0;
 }
 string Table::stringify(int row, int col){
-	//บฮลอ!!!!!! 
+	if(row<max_row_size&&col<max_col_size&&data_table[row][col]){//correct range, is data
+		return data_table[row][col]->stringify();
+	}
+	return "";
+}
+std::ostream& operator<<(std::ostream& o, Table& table){//ostream operator overloading.
+	o<<table.print_table();
+	return o;
+}
+
+class TxtTable:public Table{//order, print Table's content
+	string repeat_char(int n, char c);
+	//column number to A~Z
+	string col_num_to_str(int n);
+	
+	public:
+		TxtTable(int row, int col);
+		//print table with text
+		string print_table();
+};
+TxtTable::TxtTable(int row, int col):Table(row, col){}//Constructor call Table's constructor with initializer list
+string TxtTable::print_table(){
+	string total_table;
+	
+	int* col_max_wide=new int[max_col_size];
+	for(int i=0; i<max_col_size; i++){
+		unsigned int max_wide=2;
+		for(int j=0; j<max_row_size; j++){
+			if(data_table[j][i]&&data_table[j][i]->stringify().length()>max_wide){
+				max_wide=data_table[j][i]->stringify().length();
+			}
+		}
+		col_max_wide[i]=max_wide;
+	}//find maximum length of cell in whole area.
+	total_table+="		";
+	int total_wide=4;
+	for(int i=0; i<max_col_size; i++){
+		if(col_max_wide[i]){
+			int max_len=max(2, col_max_wide[i]);
+			total_table+=" | "+col_num_to_str(i);
+			total_table+=repeat_char(max_len-col_num_to_str(i).length(), ' ');
+			
+			total_wide+=(max_len+3);
+		}
+	}
+	//
+	
 }
 
 /*
