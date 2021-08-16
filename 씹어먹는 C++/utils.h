@@ -80,15 +80,60 @@ class Cell{//one space in big table.
 		int x, y;//cell location
 		Table* table;//which table in?
 		
-		string data;//for save content in one space.
+		//string data;//for save content in one space.[deleted]
 	public:
 		//convert data to string
-		virtual string stringify();
+		virtual string stringify()=0;//purize
 		//convert data to num(for inheritance to NumberCell, etc.. so virtual!)
-		virtual int to_numeric();
+		virtual int to_numeric()=0;//purize
 		//Constructor
-		Cell(string data, int x, int y, Table* table);
+		Cell(int x, int y, Table* table);//no string data
 }; 
+
+class StringCell:public Cell{
+	string data;
+	
+	public:
+		string stringify();
+		int to_numeric();
+		
+		StringCell(string data, int x, int y, Table* t);
+};
+class NumberCell:public Cell{
+	int data;
+	
+	public:
+		string stringify();
+		int to_numeric();
+		
+		NumberCell(int data, int x, int y, Table* t);
+};
+class DateCell:public Cell{//for convenience, yyy-mm-dd format defined
+	time_t data;
+	
+	public:
+		string stringify();
+		int to_numeric();
+		
+		DateCell(string s, int x, int y, Table* t);
+};
+class ExprCell:public Cell{
+	string data;
+	string* parsed_expr;
+	
+	Vector exp_vec;
+	
+	int precedence(char c);//return priority of operator
+	void parse_expression();//research mathematical expression
+	
+	public:
+		ExprCell(string data, int x, int y, Table* t);
+		
+		string stringify();
+		int to_numeric();
+};
+
+
 //Cell end
 
 //Table
@@ -146,6 +191,18 @@ class CSVTable:public Table{
 		string print_table();
 };
 //CSVTable end
+
+//Excel
+class Excel{
+	Table* current_table;
+	
+	public:
+		Excel(int max_row, int max_col, int choice);
+		
+		int parse_user_input(string s);
+		void command_line();
+};
+//Excel end 
 
 }//MyExcel
 #endif
