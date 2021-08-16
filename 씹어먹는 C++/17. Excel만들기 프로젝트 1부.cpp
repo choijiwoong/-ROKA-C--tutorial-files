@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
-#include <algorithm>
 #include "utillity.cpp"
 
 int main(){
@@ -37,5 +36,5 @@ int main(){
 
 [3.	본격적인 'Cell'과 'Table'클래스]
 1.	구현 중, 셀의 문자여 데이터에서 개행 문자가 있는 경우(한 셀이 여러줄이 될 때)는 고려하지 않았다. 즉, 모든 셀은 1줄로만 그려지게 된다. 이는ㄴ 실제로는 각 행의 최대 높이 역시 열과 마찬가지로 계산하여 그려야 한다. 
-2.	
+2.	링크 과정에서 오류가 있지만 일단 진행,, 
 */

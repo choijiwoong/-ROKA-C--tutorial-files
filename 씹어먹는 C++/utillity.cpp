@@ -217,7 +217,7 @@ string TxtTable::print_table(){
 		
 		for(int j=0; j<max_col_size; j++){
 			if(col_max_wide[j]){
-				int max_len=max(2, col_max_wide[j]);
+				int max_len=std::max(2, col_max_wide[j]);
 				
 				string s="";
 				if(data_table[i][j]){
@@ -264,7 +264,7 @@ string HtmlTable::print_table(){
 			s+="<td>";
 			if(data_table[i][j])
 				s+=data_table[i][j]->stringify();
-			s+="</td>"
+			s+="</td>";
 		}
 		s+="</tr>";
 	}
