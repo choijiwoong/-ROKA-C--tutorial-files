@@ -1,7 +1,5 @@
 #ifndef UTILS_H
 #define UTHLS_H
-
-#include <iostream>
 #include <string>
 using std::string;
 
@@ -74,6 +72,80 @@ class NumStack{
 		~NumStack();
 };
 //NumStack end 
+
+//Cell
+class Table;
+class Cell{//one space in big table.
+	protected:
+		int x, y;//cell location
+		Table* table;//which table in?
+		
+		string data;//for save content in one space.
+	public:
+		//convert data to string
+		virtual string stringify();
+		//convert data to num(for inheritance to NumberCell, etc.. so virtual!)
+		virtual int to_numeric();
+		//Constructor
+		Cell(string data, int x, int y, Table* table);
+}; 
+//Cell end
+
+//Table
+class Table{
+	protected:
+		int max_row_size, max_col_size;//maximum size of row and column
+		Cell*** data_table;//2 tensor array that save Cell* data.
+		
+	public:
+		//Constructor
+		Table(int man_row_size, int max_col_size);
+		//Destructor
+		~Table();
+		//register new cell to row, col
+		void reg_cell(Cell* c, int row, int col);
+		//return numeric value that cell
+		int to_numeric(const string& s);//s is name of cell(ex. A3, E7)
+		//call cell with row and col
+		int to_numeric(int row, int col);
+		//return string in that cell
+		string stringify(const string& s);
+		string stringify(int row, int col);
+		//print table.
+		virtual string print_table()=0;//pure virtual function **Table object can't be made!** it must inherit
+};
+//Table end
+
+//TxtTable
+class TxtTable:public Table{//order, print Table's content
+	string repeat_char(int n, char c);
+	//column number to A~Z
+	string col_num_to_str(int n);
+	
+	public:
+		TxtTable(int row, int col);
+		//print table with text
+		string print_table();
+};
+//TxtTable end
+
+//HtmlTable
+class HtmlTable:public Table{
+	public:
+		HtmlTable(int row, int col);
+		
+		string print_table();
+};
+//HtmlTable end
+
+//CSVTable
+class CSVTable:public Table{
+	public:
+		CSVTable(int row, int col);
+		
+		string print_table();
+};
+//CSVTable end
 
 }//MyExcel
 #endif

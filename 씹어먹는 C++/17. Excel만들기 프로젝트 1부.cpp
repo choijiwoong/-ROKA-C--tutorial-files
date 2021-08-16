@@ -1,146 +1,20 @@
 #include <iostream>
 #include <string>
+#include <cstdlib>
+#include <algorithm>
+#include "utillity.cpp"
 
-class Cell{//one space in big table.
-	protected:
-		int x, y;//cell location
-		Table* table;//which table in?
-		
-		string data;//for save content in one space.
-	public:
-		//convert data to string
-		virtual string stringify();
-		//convert data to num(for inheritance to NumberCell, etc.. so virtual!)
-		virtual int to_numeric();
-		//Constructor
-		Cell(string data, int x, int y, Table* table);
-}; 
-Cell::Cell(string data, int x, int y, Table* table): data(data), x(x), y(y), table(table) {}
-string Cell::stringify(){	return data;	}
-int Cell::to_numeric() {	return 0;	}//string to num return 0
-
-class Table{
-	protected:
-		int max_row_size, max_col_size;//maximum size of row and column
-		Cell*** data_table;//2 tensor array that save Cell* data.
-		
-	public:
-		//Constructor
-		Table(int man_row_size, int max_col_size);
-		//Destructor
-		~Table();
-		//register new cell to row, col
-		void reg_cell(Cell* c, int row, int col);
-		//return numeric value that cell
-		int to_numeric(const string& s);//s is name of cell(ex. A3, E7)
-		//call cell with row and col
-		int to_numeric(int row, int col);
-		//return string in that cell
-		string stringify(const string& s);
-		string stringify(int row, int col);
-		//print table.
-		virtual string print_table()=0;//pure virtual function **Table object can't be made!** it must inherit
-};
-Table::Table(int max_row_size, int max_col_size): max_row_size(max_row_size), max_col_size(max_col_size){
-	data_table=new Cell**[max_row_size];//Cell*'s array 
-	for(int i=0; i<max_row_size; i++){
-		data_table[i]=new Cell*[max_col_size];//allocation with column
-		for(int j=0; j<max_col_size; j++){
-			data_table[i][j]=NULL;//set data to NULL
-		}
-	}
-}
-Table::~Table(){
-	for(int i=0; i<max_row_size; i++){//with all data location
-		for(int j=0; j<max_col_size; j++){
-			if(data_table[i][j])//if data exist
-				delete data_table[i][j];//delete_1. cell object erase.
-		}
-	}
-	for(int i=0; i<max_row_size; i++){
-		delete[] data_table[i];//delete data_table[i] that is used for making col Cells_2. Cell array erase.
-	}
-	delete data_table;//delete data_table._3. 2 tensor table erase.
-}
-void Table::reg_cell(Cell* c, int row, int col){
-	if(!(row<max_row_size&&col<max_col_size)) return;//exception out range.
+int main(){
+	MyExcel::TxtTable table(5,5);
+	std::ofstream out("test.txt");
 	
-	if(data_table[row][col]){
-		delete data_table[row][col];//erase initial cell's address
-	}
-	data_table[row][col]=c;//change to new cell's address
-}
-int Table::to_numeric(const string& s){//ex. B4
-	int col=s[0]-'A';
-	int row=atoi(s.c_str()+1)-1;//change to c string
+	table.reg_cell(new Cell("Hello~", 0, 0, &table), 0, 0);
+	table.reg_cell(new Cell("C++", 0, 1, &table), 0, 1);
 	
-	if(row<max_row_size&&col<max_col_size){
-		if(data_table[row][col]){
-			return data_table[row][col]->to_numeric();//function in Cell class
-		}
-		return 0;
-	}
-}
-string Table::stringify(const string& s){
-	int col=s[0]-'A';
-	int row=atoi(s.c_str()+1)-1;
-	
-	if(row<max_row_size&&col<max_col_size){//correct range
-		if(data_table[row][col]){//is data
-			return data_table[row][col]->stringify();
-		}
-	}
-	return 0;
-}
-string Table::stringify(int row, int col){
-	if(row<max_row_size&&col<max_col_size&&data_table[row][col]){//correct range, is data
-		return data_table[row][col]->stringify();
-	}
-	return "";
-}
-std::ostream& operator<<(std::ostream& o, Table& table){//ostream operator overloading.
-	o<<table.print_table();
-	return o;
-}
-
-class TxtTable:public Table{//order, print Table's content
-	string repeat_char(int n, char c);
-	//column number to A~Z
-	string col_num_to_str(int n);
-	
-	public:
-		TxtTable(int row, int col);
-		//print table with text
-		string print_table();
-};
-TxtTable::TxtTable(int row, int col):Table(row, col){}//Constructor call Table's constructor with initializer list
-string TxtTable::print_table(){
-	string total_table;
-	
-	int* col_max_wide=new int[max_col_size];
-	for(int i=0; i<max_col_size; i++){
-		unsigned int max_wide=2;
-		for(int j=0; j<max_row_size; j++){
-			if(data_table[j][i]&&data_table[j][i]->stringify().length()>max_wide){
-				max_wide=data_table[j][i]->stringify().length();
-			}
-		}
-		col_max_wide[i]=max_wide;
-	}//find maximum length of cell in whole area.
-	total_table+="		";
-	int total_wide=4;
-	for(int i=0; i<max_col_size; i++){
-		if(col_max_wide[i]){
-			int max_len=max(2, col_max_wide[i]);
-			total_table+=" | "+col_num_to_str(i);
-			total_table+=repeat_char(max_len-col_num_to_str(i).length(), ' ');
-			
-			total_wide+=(max_len+3);
-		}
-	}
-	//
-	
-}
+	table.reg_cell(new Cell("Programming", 1, 1, &table), 1, 1);
+	std::cout<<std::endl<<table;
+	out<<table;
+} 
 
 /*
 [0. 들어가기에 앞서서]
@@ -162,5 +36,6 @@ string TxtTable::print_table(){
 3.	NumStack클래스까지 만들어, utils.h 헤더파일과 그 하위 함수들이 정의된 utility.cpp파일로 나뉘어 MyExcel이라는 namespace에 담아두었다.
 
 [3.	본격적인 'Cell'과 'Table'클래스]
-1.	 
+1.	구현 중, 셀의 문자여 데이터에서 개행 문자가 있는 경우(한 셀이 여러줄이 될 때)는 고려하지 않았다. 즉, 모든 셀은 1줄로만 그려지게 된다. 이는ㄴ 실제로는 각 행의 최대 높이 역시 열과 마찬가지로 계산하여 그려야 한다. 
+2.	
 */
