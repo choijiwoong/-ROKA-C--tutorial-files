@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
-//그런데 위 bubble_sort 함수에서는 한 가지 부족한 점이 있습니다. 만약에, 정렬 순서를 역순으로 하고
-//1~3, 4
+
+/*1~3, 4, 5
 template <typename T>
 class Vector{
 	T* data;
@@ -104,6 +104,25 @@ void bubble_sort(Cont& cont){//use reference
 				cont.swap(i, j);
 }
 
+template <typename Cont, typename Comp>
+void bubble_sort(Cont& cont, Comp& comp){
+	for(int i=0; i<cont.size(); i++)
+		for(int j=i+1; j<cont.size(); j++)
+			if(!comp(cont[i], cont[j]))//comp is not function but it's  used like function
+				cont.swap(i, j);
+}
+
+struct Comp1{//comp1 object. Function object_Functor!
+	bool operator()(int a, int b){//() operator overloading. it will work as function because of () overloading.
+		return a>b;
+	}
+};
+struct Comp2{//conp2 object. Function object_Functor!
+	bool operator()(int a, int b){//() operator overloading
+		return a<b;
+	}//thanks to Functor, we can compare two object in bubble_sort funtion.
+};
+
 int main(){
 	Vector<int> int_vec;
 	int_vec.push_back(3);
@@ -116,12 +135,22 @@ int main(){
 	std::cout<<"정렬 이전 ---- "<<std::endl;
 	for(int i=0; i<int_vec.size(); i++)
 		std::cout<<int_vec[i]<<" ";
+	std::cout<<std::endl;
 	
-	std::cout<<std::endl<<"정렬 이후 ---- "<<std::endl;
-	bubble_sort(int_vec);//Vector<int> will be sent to Cont typename in template function. runtime error!
+	std::cout<<std::endl<<"오름차순 정렬 이후 ---- "<<std::endl;
+	//Comp2 comp2;
+	bubble_sort(int_vec);//Vector<int> will be sent to Cont typename in template function. runtime error! it compare by <
 	for(int i=0; i<int_vec.size(); i++)
 		std::cout<<int_vec[i]<<" ";
 	std::cout<<std::endl;
+	
+	std::cout<<std::endl<<"내림차순 정렬 이후 ---- "<<std::endl;
+	Comp1 comp1;
+	bubble_sort(int_vec, comp1);//it compare by Comp object
+	for(int i=0; i<int_vec.size(); i++)
+		std::cout<<int_vec[i]<<" ";
+	std::cout<<std::endl<<std::endl;
+	//both make template instantiation!
 	
 	Vector<std::string> str_vec;
 	str_vec.push_back("hello");
@@ -149,12 +178,12 @@ int main(){
 	bool_vec.push_back(true);
 	bool_vec.push_back(false);
 
-	std::cout << "-------- bool vector ---------" << std::endl;
+	std::cout <<std::endl<< "-------- bool vector ---------" << std::endl;
 	for (int i = 0; i < bool_vec.size(); i++) {
   		std::cout << bool_vec[i];
 	}
 	std::cout << std::endl;
-}
+}*/
 
 /*4
 template <typename T>
@@ -169,6 +198,66 @@ int main(){
 	std::string s="hello", t="world";
 	std::cout<<"Max ("<<s<<", "<<t<<") ? : "<<max(s,t)<<std::endl;
 }*/
+
+/*6
+template <typename T, int num=5>//defaul argument! add_num(x) possible!!
+T add_num(T t){
+	return t+num;
+} 
+
+int main(){
+	int x=3;
+	std::cout<<"x : "<<add_num<int, 5>(x)<<std::endl;//if we just use add_num<int>(x), compiler doesn't know what content will be in num variable.
+}*/
+
+/*6
+#include <array>
+
+template <typename T>
+void print_array(const T& arr){//void print_array(const std::array<int, 5>& arr){
+	for(int i=0; i<arr.size(); i++)
+		std::cout<<arr[i]<<" ";
+	std::cout<<std::endl;
+} 
+
+int main(){
+	std::array<int, 5> arr={1,2,3,4,5};
+	for(int i=0; i<arr.size(); i++)
+		std::cout<<arr[i]<" ";
+		
+    std::array<int, 7> arr2 = {1, 2, 3, 4, 5, 6, 7};
+    std::array<int, 3> arr3 = {1, 2, 3};
+    std::array<int, 5> arr4 = {1, 2, 3, 4, 5};
+    print_array(arr2);
+    print_array(arr3);
+	print_array(arr4);
+	
+	std::cout<<std::endl;
+}*/
+
+//7
+template <typename T>
+struct Compare{
+	bool operator()(const T& a, const T& b) const { return a<b; }
+};
+
+template <typename T, typename Comp=Compare<T> >
+T Min(T a, T b){
+	Comp comp;
+	if(comp(a, b))
+		return a;
+	return b;
+}
+
+int main(){
+	int a=3, b=4;
+	//std::cout<<"min : "<<Min<int, Compare<int>>(a, b);//complex! use defualt template argument!
+	std::cout << "Min " << a << " , " << b << " :: " << Min(a, b) << std::endl;//work by default template argument!
+
+    std::string s1 = "abc", s2 = "def";
+    std::cout << "Min " << s1 << " , " << s2 << " :: " << Min(s1, s2)<< std::endl;//automatically work!
+}
+
 
 /*
 [0.	들어가기에 앞서]
@@ -202,5 +291,41 @@ int main(){
 [4.	함수 템플릿(Function template)]
 1.	만약 함수 템플릿에서 사용한 함수를 전달한 인자가 갖고있지 않을 경우에 오류를 뿜어낸다. 이는 런타임 시 발생하는데, 텀파일러가 type이 argument로 들어올 때 코드를 완성하여 사용하기 때문이다.
 2.	이렇게 컴파일 시에 모든템플릿 들이 인스턴스화된다는 사실을 가지고 템플릿 메타프로그래밍(template metaprogramming)이라고 하는 방식으로 코들르 짤 수 있다.
- 
+3.	bubble_sort함수에는 한가지 부족한 점이 있는데, 바로 역순 정렬이다. 이에 대한 해결책으로는 크게 3가지 정도가 있는데,
+	-bubble_sort2를 만들어서 부등호의 방향을 반대로 바꿔준다.
+	-operator>를 오버로딩해서 원하는 방식으로 만들어준다.
+	-cont[i]와 cont[j]의 비교를 >로 하지 말고 특정 함수에 넣어서 전달한다.
+	첫번째 방법과 같은 경우 C언어를 배우는 단계에서나 적합한 방법이다.
+	두번째 방법은 우리가 만든 객체를 사욯할 때 적용가능한 방법이다. bool operator<(const customClass& c{} 하지만 위처럼 기본적으로 operator를 오버로딩할 수 없는 상황이라면(ex. int나 string은 이미 내부적으로 operator<가 정의되어 있기에 오버로딩이 불가능하다.)
+
+[5.	함수 객체(Function Object-Funtor)의 도입] 
+1.	함수는 아니지만 함수인 척을 하는 객체를 함수 객체(Function Object, Functor)이라고 한다.
+2.	C++ 표준 라이브러리의 sort함수 역시, 비교 클래스를 받지 않는
+	template <class RandonIt>
+	void sort(RandomIt first, RandomIt last);와
+	
+	template <class RandomIt, class Compare>
+	void sort(RandomIt first, RanfomIt last, Compare comp);
+	처럼 비교클래스를 받는 위 버전으로 구성되어 있다. 
+3.	C의 경우, 클래스를 받는다는 것 자체가 불가능하기에 대신에, 비교작업을 수행하는 함수의 포인터를 받아서 처리가 가능하다.
+	물론, Functor을 사용하는 것이 여러모로 편리하다.
+	클래스 내부 state를 지정하여 비교 자체가 복잡한 경우에도 사용자가 원하는 방식으로 만들어낼 수 있을 뿐만아니라, 
+	함수 포인터로 함술르 받아서 처리한다면 컴파일러가 최적화를 할 수 없지만, Functor를 넘기게 되면 컴파일러가 operator()자체를 인라인화 시켜서 매우 빠르게 작업수행이 가능하다. _대충 C의 매크로함수 같은 
+
+[6.	타입이 아닌 템플릿 인자(non-type template arguments)]
+1.	템플릿 인자로 타입이 아닌 값을 전달할 수도 있는데, 아래와 같이 제한적이다.
+	-정수 타입들(bool, char, int, long 등등). float과 double은 제외된다.
+	-포인터 타입
+	-enum 타입(열거형) 
+	-std::nullptr_t(널 포인터) 
+2.	이렇게 타입이 아니라 템플릿 인자를 활용하는 예시로는 컴파일 타임 간에 값들이 정해져야 하는 것들의 경우다.
+	예를 들어 C에서 함수에 배열을 전달할 때 배열의 크기에 대한 정보를 잃어버리게 되는데, 이를 템플릿 인자로서 배열의 크기를 명시한다면(배열의 크기는 컴파일 타임간에 정해지게되니) 완벽하게 문제를 해결할 수 있다.
+3.	C++11부터 이런 기능을 가진 배열을 std::array를 통해 사용할 수 있다. 이때 C처럼 배열을 정의할 때 {}를 이용하는데,
+	이 {}는 유니폼 초기화(uniform initialization)이라 불리는 C++11에서 추가된 개념인데, 우선 std::array의 생성자를 호출하는 또 하나의 방법이라고 생각하면 된다.
+	 한 가지 재미있는 점은, arr은 동적으로 크기가 런타임에서 할당되는 것이 아니라, 일반적인 배열처럼 컴파일 시에 int 5개를 가지는 메모리를 가지고 스택에 할당된다.
+	또한 이 배열을 함수에 전달하기 위해서는 그냥 std::array를 받는 함수가 아니라 std::array<int, 5>자체가 하나의 타입이기 때문에 void print_array(const std;:array<int, 5>& arr){}이런 식으로 받아야 한다. 
+	하지만 넘모 귀찮쥬? 그래서 템플릿을 사용해버립니다. 
+[7. 디폴트 템플릿 인자]
+1.	함수에 디폴트 인자를 지정할 수 있던 것 처럼, 템플릿도 디폴트 인자를 지정할 수 있다. 
+2.	타입도 마찬가지로 디폴트 지정이 가능하다. 
 */
