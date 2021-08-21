@@ -1,6 +1,6 @@
 #include <iostream>
 #include <typeinfo>
-//마찬가지 방법으로 모든 사칙연산들을 구현하자면 아래와 같습니다.
+
 /*0
 template <typename T, unsigned int N>//get type, uint by template argument.
 class Array{
@@ -105,21 +105,41 @@ struct Ratio_add:_Ratio_add<R1, R2>::type {};//just make type that is already ad
 template <int N, int D=1>
 struct Ratio{
 	private:
-		const static int _gcd=GCD<N, D>::value;
+		const static int _gcd=GCD<N, D>::value;//for abbreviation
 		
 	public:
-		typedef Ratio<N/_gcd, D/_gcd> type;
+		typedef Ratio<N/_gcd, D/_gcd> type;//abbreviation
 		static const int num=N/_gcd;
 		static const int den=D/_gcd;
 };
 template <class R1, class R2>
 struct _Ratio_add{
-	using type=Ratio<R1::num*R2::den+R2::num*R1::den, R1::den*R2::den>;
+	using type=Ratio<R1::num*R2::den+R2::num*R1::den, R1::den*R2::den>;//result to template argument as N, D
 };
 
 template <class R1, class R2>
 struct Ratio_add:_Ratio_add<R1, R2>::type {};//부터 
 
+template <class R1, class R2>
+struct _Ratio_substract{
+	using type=Ratio<R1::num*R2::den-R2::num*R1::den, R1::den*R2::den>;
+};
+template <class R1, class R2>
+struct Ratio_subtract:_Ratio_subtract<R1, R2>::type {};//for convenience. not need to type ::type.
+
+template <class R1, class R2>
+struct _Ratio_multiply{
+	using type=Ratio<R1::num*R2::num, R1::den*R2::den>;
+};
+template <class R1, class R2>
+struct Tatio_multiply:_Ratio_multiply<R1, R2>::type {};
+
+template <class R1, class R2>
+struct _Ratio_divide{
+	using type=Ratio<R1::num*R2::den, R1::den*R2::num>;
+};
+template <class R1, class R2>
+struct Ratio_divide:_Ratio_divide<R1, R2>::type {};
 
 int main(){
 	std::cout<<"gcd (36, 24) :: "<<GCD<26, 24>::value<<std::endl;
@@ -129,8 +149,33 @@ int main(){
 	using rat3=Ratio_add<rat, rat2>;//typedef Ratio_add<rat, rat2> rat3;
 	std::cout<<rat3::num<<" / "<<rat3::den<<std::endl;//not making Ratio class's object! just compiler makes new types.
 	
+	using r1=Ratio<2,3>;
+	using r2=Ratio<3,2>;
+	using r3=Ratio_add<r1, r2>;
+	using r4=Ratio_multiply<r1, r3>;
+	
+	std::cout<<"2/3 + 3/2 = "<<r3::num<<" / "<<r3::den<<std::endl;
+	std::cout<<"13 / 6 * 2 / 3 = "<<r4::num<<" / "<<r4::den<<std::endl;
+	
 	return 0;
 }
+
+
+/* Nth pibo TMP for problem 1
+template <int N=0>
+class fib{
+	static const int result=fib<N-1>::value+fib<N-2>::value;
+}
+
+tempalte <>
+class fib<2>{
+	static const int value=1;
+}
+
+
+int main(){
+	std::cout<<"5 번째 피보나치 수 :: "<<fib<5>::result<<std::endl;
+}*/
 
 
 /*
@@ -157,4 +202,5 @@ int main(){
 3.	C++11부터 typedef 대신에 using이라는 키워드를 사용할 수 있다.
 	typedef Ratio_add<rat, rat2> rat3; == using rat2=Ratio_add<rat, rat2>;
 4.	특히 함수 포인터의 경우 typedef void (*func)(int, int);처럼 사용해야 했지만, using으로는 using func=void (*)(int int);처럼 직관적으로 나타낼 수 있다. 
+5.	컴파일 타임에 Ratio하는 것이 왜 필요한지 다음 강의에서 알아보자. 
 */
