@@ -1,25 +1,202 @@
 #include <iostream>
 #include <vector>
-//라면 원소가 없는 벡터를 의미하겠지요. 만약에 vec.end() 가 마지막 원소를 가리킨다면 비어있는 벡터를 표현할 수 없게 됩니다.
+#include <list>
+
+/*1~4
+template <typename T>
+void print_vector(std::vector<T>& vec){
+	//핫윙 먹고싶다...냉동으로 코스트코에 파는뎀...핫소스발라져있고...으헝헝 
+	for(typename std::vector<T>::iterator itr=vec.begin(); itr!=vec.end(); ++itr)//typename must be needed because iterator is dependent type of std::vector<T>.
+		std::cout<<*itr<<std::endl; 
+}
 
 int main(){
+	//make vector
 	std::vector<int> vec;
 	vec.push_back(10);//add at back
 	vec.push_back(20);
 	vec.push_back(30);
 	vec.push_back(40);
 	
-	//print all vector. size()'s return type is saved in size_type
+	//print vector by int i that is size_type
+	//size()'s return type is saved in size_type
+	std::cout<<"<print vector by using size_type i>"<<std::endl;
 	for(std::vector<int>::size_type i=0; i<vec.size(); i++)
 		std::cout<<"vec's "<<i+1<<"th element :: "<<vec[i]<<std::endl;
+	std::cout<<std::endl<<std::endl;	
+	
+	//print vector by iterator
+	std::cout<<"<print vector by using iterator itr>"<<std::endl;
+	for(std::vector<int>::iterator itr=vec.begin(); itr!=vec.end(); ++itr)//itr acts like address So, for read value, write with *
+		std::cout<<*itr<<std::endl;//itr is not pointer! just operator* overloading for using like pointer. Actually, *itr return reference of random element.
+	std::cout<<std::endl<<std::endl;
 	
 	//int arr[4]={10, 20, 30, 40};
 	//*(arr+2)==arr[2]==30;
-	//*(itr+2)==vec[2]==30;
+	//*(itr+2)==vec[2]==30; all same
 	
+	//access random location of vector by begin()+ operation
+	std::cout<<"<print 3nd element by vec.begin()+2>"<<std::endl;
 	std::vector<int>::iterator itr=vec.begin()+2;
-	std::cout<<"3nd element :: "<<*itr<<std::endl;
-		
+	std::cout<<"3nd element :: "<<*itr<<std::endl<<std::endl;
+	
+	//how to use insert and erase?
+	std::cout<<"<use insert & erase>"<<std::endl;
+	std::cout<<"initial vector status"<<std::endl;
+	print_vector(vec);//we make template function for convenience
+	std::cout<<std::endl;
+	
+	//insert(address, value)
+	std::cout<<"insert 15 to begin()+2"<<std::endl;
+	vec.insert(vec.begin()+2, 15);
+	print_vector(vec);
+	std::cout<<std::endl;
+	
+	//erase(address)
+	std::cout<<"erase vec.begin()+3"<<std::endl;
+	vec.erase(vec.begin()+3);
+	print_vector(vec);
+	std::cout<<std::endl;
+	//insert & erase are O(n). it's slow.
+	
+	//we can think that same code will work with variables that have vec.begin() and vec.end(). but it occur error when element's value are changed.
+	std::vector<int>::iterator itr1=vec.begin();
+	std::vector<int>::iterator end_itr=vec.end();
+	
+	//without itr1=vec.begin() command, it occurs error because itr1 becomes trash iterator thanks to changing of element's value
+	for(; itr1!=end_itr; ++itr1){//so itr1!=end_itr are infinitely true->infinite loof error
+		if(*itr1==20){
+			vec.erase(itr1);//error occur! if vector's elements are changed, than we cannot use initial iterator like itr1, end_itr.
+			itr1=vec.begin();//can solve this problem! but it's not efficient because it find 20 at first. so
+		}
+	}
+	
+	//upgrade upper way that dosen't check location continuously.
+	for(std::vector<int>::size_type i=0; i!=vec.size(); i++){//this way is much better.
+		if(vec[i]==20){
+			vec.erase(vec.begin()+i);//just input vec.begin() in erase!
+			i--;//have to check same location because there is not same element now.
+		}
+	}//but this isn't good way because it's just access by int i like normal array. not by iterator itself.
+	//erase result print part
+	std::cout<<"erase element that has 20!"<<std::endl;
+	print_vector(vec);
+	std::cout<<std::endl;
+	
+	//const iterator can't change value! 
+	vec.push_back(35);
+	vec.insert(vec.begin()+1,5);//less element,,,so add
+	std::cout<<"initial vector status"<<std::endl;
+	print_vector(vec);
+	//normal iterator can change value of element
+	std::vector<int>::iterator itr2=vec.begin()+2;
+	*itr2=50;//in here
+	std::cout<<"----------------"<<std::endl;
+	print_vector(vec);
+	std::cout<<std::endl;//show changed value after *itr2=50
+	
+	//show const_iterator can't change value and just read value.
+	std::vector<int>::const_iterator citr=vec.cbegin()+2;//const_iterator! only read. vec.cbegin() used! not begin and also we use vec.cend()
+	//*citr=30;//impossible! because const_iterator can't change value of element 
+	std::cout<<*citr<<std::endl;//read is possible in const_iterator ofcoursely!
+	//it must use cbegin and cend
+	
+	//reverse iterator use!
+	std::cout<<"----------------"<<std::endl;
+	std::cout<<"print vec reversely"<<std::endl;
+	std::vector<int>::reverse_iterator r_iter=vec.rbegin();//and it also has const_reverse_iterator with crbegin(), crend().
+	for(; r_iter!=vec.rend(); r_iter++)//++ direction important! vec.rend() points before first element like vec.end().
+		std::cout<<*r_iter<<std::endl; 
+	//it must use rbegin like cbegin
+	
+	//importance of reverse_iterator
+	for(std::vector<int>::size_type i=vec.size()-1; i>=0; i--)//common way that we think to access vector reversely.
+		std::cout<<vec[i]<<std::endl;//error occur! because vector's index type is unsigned int type!
+	//so if we i-- when i==0, it's not -1, is the biggest integer at that type. so for condition can't be stopped.
+	//for solve this problem, we have to define index to signed int. but it occur problem that we have to type casting because vector's index are diferent to signed int.
+	//so when we have to access reversely, just use reverse_iterator!!
+	
+	return 0;	
+}*/
+
+/*5
+//code is too long,,so cut! with intention of practice.
+template <typename T>
+void print_vector(std::vector<T>& vec){
+	for(typename std::vector<T>::iterator itr=vec.begin(); itr!=vec.end(); ++itr)
+		std::cout<<*itr<<std::endl;
+}
+
+template <typename T>
+void print_vector_range_based(std::vector<T>& vec){
+	for(const auto& elem:vec)//range-based used(feat. auto keyword & const keyword)
+		std::cout<<elem<<std::endl;//it access vec's element by using const reference. so intuitive! this is adventage of 'range-based for sentenct'
+}
+
+int main(){
+	std::vector<int> vec;
+	vec.push_back(1);
+	vec.push_back(2);
+	vec.push_back(3);
+	
+	//range-based for block sentence by copy
+	for(int elem:vec)//vec's element is copied at elem each loof. like elem=vec[i]. without ';'
+		std::cout<<"element : "<<elem<<std::endl;
+	
+	//print vector by using iterator and range-based for
+	std::cout<<"print_vector"<<std::endl;
+	print_vector(vec);
+	std::cout<<"print_vector_range_based"<<std::endl;
+	print_vector_range_based(vec);//same print result with upper code that use iterator!
+	
+	return 0;
+} */
+
+//6. list 
+
+template <typename T>
+void print_list(std::list<T>& lst){
+	std::cout<<"[ ";
+	for(const auto& elem:lst)//use range-based for sentence to print list!(feat. auto & const keyword)
+		std::cout<<elem<<" ";
+	std::cout<<"]"<<std::endl;
+} 
+
+int main(){
+	std::list<int> lst;
+	
+	lst.push_back(10);
+	lst.push_back(20);
+	lst.push_back(30);
+	lst.push_back(40);//(o mo na push_front is exist!)
+	
+	//list can print like vector with iterator.
+	for(std::list<int>::iterator itr=lst.begin(); itr!=lst.end(); ++itr)
+		std::cout<<*itr<<std::endl;//completely print! like vector print.
+	//but itr can only operate like itr++ or itr--(coursely, possible to prefix operator), can't access randomly like itr+5!
+	//only move one space like itr++.
+	//list can move left or right. it means elements can locate discontinuously. Unlike vector that can refer random element because of it's continuity.
+	
+	//list's insert and erase
+	std::cout<<"initial list's status"<<std::endl;
+	print_list(lst);
+	
+	for(std::list<int>::iterator itr=lst.begin(); itr!=lst.end(); ++itr){//itr can only ++ and -- operate!
+		if(*itr==20)
+			lst.insert(itr, 50);//work fast O(1) unlike vector!
+	}
+	std::cout<<"add 50 infront of element that has 20"<<std::endl;
+	print_list(lst);
+	
+	for(std::list<int>::iterator itr=lst.begin(); itr!=lst.end(); ++itr){
+		if(*itr==30){
+			lst.erase(itr);//itr is not invalidated when we erase element because each address of elements isn't changed thanks to link structure. 
+			break;//for prevent unnessesary calculation.
+		}
+	}
+	std::cout<<"erase element that has 30"<<std::endl;
+	print_list(lst);
+
 }
 
 /*
@@ -62,5 +239,28 @@ int main(){
 1.	앞서 반복자는 컨테이너에 원소에 접근할 수 있는 포인터와 같은 객체라고 하였다. 벡터의 경우 []말고 반복자를 사용해서도 마찬가지의 작업을 수행할 수 있는데, 후에 설명할 알고리즘 라이브러리의 경우 대부분이 반복자를 인자로 받아 알고리즘을 수행한다. 
 2.	반복자는 컨테이너에 iterator멤버 타입으로 정의되어 있는데, vector의 경우 begin()함수(첫원소가리키는 반복자)와 end()함수(마지막 원소 한 칸 뒤를 가리키는 반복자)를 사용할 수 있다.  
 	end(0)가 마지막 원소의 뒤를 가리키는 가장 큰 이유는, begin()==end()로 원소가 없는 벡터를 표현할 수 있게 되기 때문이다. 
- 
+3.	vector에서 interator로 erase나 insert를 사용할때의 주의점은 컨테이너에 원소를 추가하거나 제거하게 되면 기존에 사용하였던 모든 반복자들을 사용할 수 없게 된다는 것이다. 
+4.	vector에서 지원하는 반복자로 const_iterator도 있다. 이는 마치 const포인터를 생각하면 되는데, 가리키고 있는 원소의 값을 바꿀 수 없다.
+	이때, 주의할 점은 const반복자의 경우 cbegin()과 cend()함수를 이용한다. 웬만하면 참조값을 바꾸지 않으니 iterator로는 const_iterator을 이용하는 것이 권장된다.
+5.	vector에서 지원하는 반복자 중 마지막으로 역반복자(reverse iterator)가 있다.
+6.	역으로 접근하는 경우, 통상적인 방법으로 type_size()-1~0으로 하면 오류가 생기므로 무조건 역반복자를 사용하도록 하자. 
+
+[5.	범위 기반 for문(range based for loop)]
+1.	컨테이너 원소를 for문드로 접근하는 패턴은 많이 등장하는데, C++부터 이와 같은 패턴을 매우 간단하게 나타내기 위해 범위 기반(range-based) for문을 제공하고있다.
+2.	사용은 int elem:vec으로 하고 elements를 elem으로 접근한다. ㅈ된다. 
+3.	참고로 앞서 설명한 함수들 말고도 vector에는 수 많은 함수들이 있고, 또 오버로드 되는 여러가지 버전이 있다.(insert만 5개 오버로드)_ https://en.cppreference.com/w/cpp/container/std::vector 참고 
+
+[6.	리스트(list)]
+1.	리스트는 양방향 연결 구조를 가진 자료형이다. (start element)1<->2<->3<->4(last element) 
+	따라서 vector와는 달리 임의의 위치에 있는 원소에 접근을 바로 할 수 있다. list 컨테이너 자체에서는 시작 원소와 마지막 원소의 위치만을 기억하기 때문에, 임의의 위치에 있는 원소에 접근하기 위해서는 하나씩 링크릉 따라가야 한다. 
+	그래서 리스트에는 아예 []나 at함수가 정의되어있지 않다.
+	 대신, vector의 경우 맨 뒤를 제외하고는 random location에 insert하거나 erase하는 작업이 O(n)이었지만, 리스트의 경우 O(1)으로 매우 빠르게 수행될 수 있다.
+	그 이유는 링크를 기반으로 움직이기에 원하는 위치 앞과 뒤에 있는 링크값만 바꿔주면 되기 때문이다.
+2.	list는 한번에 한칸, 왼쪽 혹은 오른쪽으로만 이동이 가능하기에 리스트에서 정의되는 반복자의 타입을 보면 BidirectionalIterator 타입임을 알 수 있다.
+	이름 그대로, 양방향으로 이동할 수 있되, 한 칸 씩 이동할 수 있다.
+	 반면에 vector는 RandomAccessItertor이다. 즉 임의의 위치에 접근할 수 있는 반복자인 것이다.(p.s RandomAccessIterator는 BidirectionalIterator를 상속받고 있다.)
+3.	리스트는 벡터와 다르게, 각 원소들의 주소값들은 바귀지 않기 때문에 원소를 지워도 반복자가 무효화되지 않는다. 
+
+[7.	덱(deque-double ended queue)]
+1.	 
 */
