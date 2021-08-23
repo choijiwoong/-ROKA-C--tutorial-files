@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <list>
+#include <deque>
 
 /*1~4
 template <typename T>
@@ -152,8 +153,7 @@ int main(){
 	return 0;
 } */
 
-//6. list 
-
+/*6. list 
 template <typename T>
 void print_list(std::list<T>& lst){
 	std::cout<<"[ ";
@@ -196,8 +196,33 @@ int main(){
 	}
 	std::cout<<"erase element that has 30"<<std::endl;
 	print_list(lst);
+}*/
 
+//deque
+template <typename T>
+void print_deque(std::deque<T>& dq){
+	std::cout<<"[ ";
+	for(const auto& elem:dq)//range-based for loop
+		std::cout<<elem<<" ";
+	std::cout<<" ] "<<std::endl;
+} 
+int main(){
+	std::deque<int> dq;
+	dq.push_back(10);
+	dq.push_back(20);
+	dq.push_front(30);
+	dq.push_front(40);
+	
+	std::cout<<"initial dq's status"<<std::endl;
+	print_deque(dq);
+	
+	std::cout<<"first element eleminate"<<std::endl;
+	dq.pop_front();
+	print_deque(dq);
+	
+	return 0;
 }
+
 
 /*
 [0.	들어가기 앞서]
@@ -262,5 +287,21 @@ int main(){
 3.	리스트는 벡터와 다르게, 각 원소들의 주소값들은 바귀지 않기 때문에 원소를 지워도 반복자가 무효화되지 않는다. 
 
 [7.	덱(deque-double ended queue)]
-1.	 
+1.	덱은 벡터와 비슷하게 O(1)로 임의의 위치의 원소에 접근할 수 있으며, 맨 뒤에 원소를 추가/제거 역시 O(1)로 수행이 가능하다. 
+	게다라 벡터와는 다르게 맨 앞에 원소를 추가/제거 하는 작업까지도 O(1)로 수행이 가능하다.
+	또한 임의의 위치에 있는 원소를 제거/추가하는 작업은 벡터와 마찬가지로 O(n)으로 수행이 가능하지만 그 속도가 벡터보다 빠르다.
+	 다만, 벡터와 다르게 덱의 경우 원소들이 실제로 메모리상에서 연속적으로 존재하지 않는다. 즉 원소의 위치정보응 보관하기 위해 추가적인 메모리가 더 필요하다.(ex. 64bit libc++라이브러리의 경우 1개원소를 보관하는 덱은 그 원소 크기에 비해 8배의 메모리를 필요로 한다.)
+2.	댁은 일정 크기로 잘려서 각각의 블록 속에 존재한다. 또한 기존의 벡터와는 조금 다르게, 새로 할당 시에 앞쪽과 뒤쪽 모두 공간을 남겨놓게 된다.(벡터는 뒤만)
+	이를 통해 맨 앞과 맨 뒤에 O(1)의 속도로 insert와 erase가 가능한 것이다.
+3.	덱이 벡터보다 원소 삽입이 빠른 이유는 deq.push_back(10)을 했다고 생각하면 기존의 원소를 복사하지않고 단순히 새로운 블록을 만들어서 뒤에 추가되는 원소를 넣어준다.
+	벡터의 경우 새로 공간을 할당한다면 기존 메모리의 모든 원소를 복사해야 했다.고로 평균적으로 덱이 벡터보다 빠르게 작동한다.
+4.	물론, 덱의 경우도 블록 주소를 보관하는 벡터가 꽉 차게 되면 새로운 공간에 모두 복사해야한다. 하지만, 블록 주소의 개수는 전체 원소의 개수보다 적고, 대체로 벡터에 저장되는 객체들의 크기가 주소값의 크기보다 크기 때문에 훨씬 빠른 것이다.
+5.	덱 역시 벡터처럼 임의의 위치에 원소에 접근할 수 있고 []와 at함수를 제공하고, 반복자 연시 RandomAccessIterator타입으로 벡터와 정확히 동일한 방식으로 작동한다.
+
+[8.	그래서 어떤 컨테이너를 사용해야돼?]
+1.	-일반적인 상황에서는 그냥 벡터를 사용한다(거의 만능)
+	-만약에 맨 끝이 아닌 중간에 원소들을 추가하거나 제거하는 일을 많이 하고, 원소들을 순차적으로만 접근한다면 리스트를 사용한다.
+	-만약에 맨 처음과 끝 모두에 원소들을 추가하는 작업을 많이하면 덱을 사용한다.
+2.	O(1)로 작동한다는 것은 언제나 이론적인 결과일 뿐이며 실제로 프로그램을 짰을 시 O(n), O(logn)보다도 느릴 수 있다.(n의 크기에 따라) 
+	고로 속도가 중요한 환경이라면 적절히 성능을 가늠해보는 것도 좋다. 
 */
