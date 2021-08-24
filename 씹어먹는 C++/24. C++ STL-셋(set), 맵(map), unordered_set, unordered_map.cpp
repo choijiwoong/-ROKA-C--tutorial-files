@@ -108,19 +108,107 @@ int main(){
 	return 0;
 }*/
 
-//3
-templae <typename K, typename V>
-void print_map(std::mal<K, V>& m){
+/*3
+template <typename K, typename V>
+void print_map_by_iterator(std::map<K, V>& m){//for use iterator of function argument
 	for(auto itr=m.begin(); itr!=m.end(); ++itr)
-		std::cout<<itr->first<<" "<<itr->second<<std::endl;
+		std::cout<<itr->first<<" "<<itr->second<<std::endl;//itr points std::pair object! so we can approach key by itr->first, and value by itr->second.
+}//it can also change by using range-based for loop like that
+
+template <typename K, typename V>
+void print_map(std::map<K, V>& m){
+	for(const auto& kv:m)//it's convenient than iterator
+		std::cout<<kv.first<<" "<<kv.second<<std::endl;//elem returns object. so we can approach by .first and .second
+}
+
+template <typename K, typename V>//for prevent error that's occured when we refer value with [] that is not exist in map!
+void search_and_print(std::map<K, V>& m, K key){
+	auto itr=m.find(key);
+	if(itr!=m.end())
+		std::cout<<key<<" --> "<<itr->second<<std::endl;
+	else//exception
+		std::cout<<key<<"is not in map"<<std::endl;
 }
 
 int main(){
+	std::map<std::string, double> pitcher_list;//2 argument of template argument in map. first argument is key's type, and second argument is value's type.
+	
+	//map'insert() get pair object as argument.
+	pitcher_list.insert(std::pair<std::string, double>("saewoongpark", 2.34));//for add element in map, we must have to input std::pair object.
+	pitcher_list.insert(std::pair<std::string, double>("hacker", 2.93));//passing template argument is some annoying, so we can use std::pair() that passes argument automatically.
+	pitcher_list.insert(std::pair<std::string, double>("pearband", 2.95));
+	//without type definition, std::make_pair can make std::pair object.
+	pitcher_list.insert(std::make_pair("ouchancha", 3.04));//make_pair make std::pair object with template arguments that was gottten by ("ouchancha", 3.04)
+	pitcher_list.insert(std::make_pair("wonjunjang", 3.05));
+	pitcher_list.insert(std::make_pair("hacktor", 3.09));
+	//without insert(), we can add element by []
+	pitcher_list["nipert"]=3.56;//very convenient!
+	pitcher_list["jonghunpark"]=3.76;//like dictionary in python!
+	pitcher_list["kelly"]=3.90;//if there is same key, it will be replaced.
+	
+	print_map(pitcher_list);//print all elements
+	std::cout<<std::endl<<"depending rate of saewoongpark :: "<<pitcher_list["saewoongpark"]<<std::endl;
+	//than, we approach element that is not in pitcher_list.
+	std::cout<<"print element(that is not existing) by [] :: "<<pitcher_list["choijiwoong"]<<std::endl;//not occur error! print 0
+	//because when we call pitcher_list[choijiwoong] that is not exist in list, compiler call default constructor of double and add that value by 0. 
+	//so it initializes value of 'choijiwoong' to zero.
+	//For preventing this problem, refer value after check element is in list by find function.
+	
+	//solve problem of []!
+	search_and_print(pitcher_list, std::string("saewoongpark"));
+	search_and_print(pitcher_list, std::string("janghyoseoung"));//if we search "choijiwoong", it exists in list because we call default constructor of double before!
+	
+	//map don't allow overlapping of element like set! second insert can be ignored!
+	pitcher_list.insert(std::pair<std::string, double>("coldbrewcoffee", 100));
+	pitcher_list.insert(std::pair<std::string, double>("coldbrewcoffee", 0));//ignore!
+	print_map(pitcher_list);
+	std::cout<<"score of coldbrewcoffee! :: "<<pitcher_list["coldbrewcoffee"]<<std::endl;
+	//so if we want to change element, use []!
+	
+	return 0;
+}*/
+
+//4
+template <typename K>
+void print_set(const std::multiset<K>& s){
+	for(const auto& elem:s)
+		std::cout<<elem<<std::endl;
+}
+
+template <typename K, typename V>
+void print_map(const std::multimap<K, V>& m){
+	for(const auto& kv:m)
+		std::cout<<kv.first<<" "<<kv.second<<std::endl;
+}
+
+int main(){
+	std::multiset<std::string> s;
+	s.insert("a");
+	s.insert("b");
+	s.insert("a");//overlap possible
+	s.insert("c");
+	s.insert("d");
+	s.insert("c");
+	print_set(s);
+	
+	std::multimap<int, std::string> m;
+	m.insert(std::make_pair(1, "hello"));
+	m.insert(std::make_pair(1, "hi"));
+	m.insert(std::make_pair(1, "ahihi"));
+	m.insert(std::make_pair(2, "bye"));
+	m.insert(std::make_pair(2, "baba"));
+	print_map(m);
+	std::cout<<std::endl<<std::endl;
+	std::cout<<m.find(1)->second<<std::endl;//Unlike common map, we can know many value can match to one key. but because of this, we can't use operator[] in multimap.
+	//so multimap doesn't supply operator[]. than what will be returned at m.find(1)->second? In c++ standard, there is no definition of this. It means "hi" or "ahihi" or "hello" all ok in C++.
+	//For use like this function, multimap apply this function.
+	
+	auto range=m.equal_range(1);//get multimap's key as argument, and return iterator of element's start and end as std::pair's first & second.
+	for(auto itr=range.first; itr!=range.second; ++itr)//same key value's iterator information in range.first and range.second.
+		std::cout<<itr->first<<" : "<<itr->second<<" "<<std::endl;
 	
 	return 0;
 }
-
-
 
 /*
 [0.	들어가기에 앞서]
@@ -161,7 +249,20 @@ int main(){
 	결과적으로 셋은 원소의 삽입과 삭제를 O(logN), 원소의 탐색도 O(logN)으로 수행하는 자료구조이다.
 
 [3. 맵(map)]
+1.	맵은 셋과 거의 똑같은 자료구조로, 셋의 경우 키만 보관했지만, 맵의 경우 키에 대응되는 값까지도 같이 보관한다. 
+2.	std::pair object는 그냥 2개의 객체를 맴버로 가지는 객체이다.
+	template <class T1, class T2>
+	struct std::pair{
+		T1 first;
+		T2 second;
+	} 
+
+[4.	멀티셋(multiset)과 멀티맵(multimap)]
+1.	멀티셋 & 멀티맵은 셋 & 맵과 달리 중복이 허용된다! 
+
+[5.	정렬되지 않은 셋과 맵(unordered_set, unordered_map)]
 1.	 
+
 */ 
 
 //오늘은 뭔가 꾸리꾸리 하구만,,, 태풍이 와서 그런 것인지,,,다이어트를 해서 그런 것인지,,,돌아오자 선우정아 노래를 들어서 그런 것인지,,,
