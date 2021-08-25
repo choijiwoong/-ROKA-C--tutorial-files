@@ -2,6 +2,9 @@
 #include <set>
 #include <string> 
 #include <map> 
+#include <unordered_set>
+#include <unordered_map>
+#include <functional> 
 
 /*1
 template <typename T>
@@ -168,7 +171,7 @@ int main(){
 	return 0;
 }*/
 
-//4
+/*4
 template <typename K>
 void print_set(const std::multiset<K>& s){
 	for(const auto& elem:s)
@@ -208,7 +211,108 @@ int main(){
 		std::cout<<itr->first<<" : "<<itr->second<<" "<<std::endl;
 	
 	return 0;
+}*/
+
+/*5
+template <typename K>
+void print_unordered_set(const std::unordered_set<K>& m){
+	for(const auto& elem:m)
+		std::cout<<elem<<std::endl;
 }
+
+template <typename K>
+void is_exist(std::unordered_set<K>& s, K key){
+	auto itr=s.find(key);
+	if(itr!=s.end())
+		std::cout<<key<<" exist!"<<std::endl;
+	else
+		std::cout<<key<<" not exist!"<<std::endl;
+}
+
+int main(){
+	std::unordered_set<std::string> s;
+	
+	s.insert("hi");
+	s.insert("my");
+	s.insert("name");
+	s.insert("is");
+	s.insert("psi");
+	s.insert("welcome");
+	s.insert("to");
+	s.insert("c++");
+	
+	print_unordered_set(s);//almost randomly print!
+	std::cout<<"----------------"<<std::endl;
+	is_exist(s, std::string("c++"));
+	is_exist(s, std::string("c"));
+	
+	std::cout<<"----------------"<<std::endl;
+	std::cout<<"delete 'hi' "<<std::endl;
+	s.erase(s.find("hi"));
+	is_exist(s, std::string("hi"));
+	
+	return 0;
+}*/
+
+template <typename K>//uset print
+void print_unordered_set(const std::unordered_set<K>& m){
+	for(const auto& elem:m)
+		std::cout<<elem<<std::endl;
+}
+
+template <typename K>//uset is exist
+void is_exist(std::unordered_set<K>& s, K key){
+	auto itr=s.find(key);
+	if(itr!=s.end())
+		std::cout<<key<<" exist!"<<std::endl;
+	else
+		std::cout<<key<<" not exist! "<<std::endl;
+}
+
+class Todo{//This will be used in inordered_set
+	int priority;//high==emergency
+	std::string job_desc;
+	
+	public:
+		Todo(int priority, std::string job_desc): priority(priority), job_desc(job_desc) {}//Constructor
+		bool operator==(const Todo& t) const{//for comparing elements in same box(when hash collision). just teach what compiler has to compare in object.
+			if(priority==t.priority && job_desc==t.job_desc) 
+				return true;
+			return false;
+		}
+		friend std::ostream& operator<<(std::ostream& o, const Todo& t);//print by <<
+		friend struct std::hash<Todo>;//for use it in hash
+};
+
+//Functor for Todo's hash function
+namespace std{//we have to write namespace explicitly when we add new class or function in special namespace.
+	template<>
+	struct hash<Todo>{
+		size_t operator()(const Todo& t) const{
+			hash<string> hash_func;//In c++, STL produces hash function about common type like int, std::string, etc.. so we just use it.
+			return t.priority^(hash_func(t.job_desc));//priority is int value so just use as hash value, and calculate string's hash value by moving to hash_func object.
+		}//(^ is xor) for jammpong~! 
+	};
+}
+std::ostream& operator<<(std::ostream& o, const Todo& t){
+	o<<"[priority : "<<t.priority<<" ] "<<t.job_desc;
+	return o;
+}
+
+int main(){
+	std::unordered_set<Todo> todos;
+	
+	todos.insert(Todo(1, "do basketball"));
+	todos.insert(Todo(2, "do math homework"));
+	todos.insert(Todo(1, "shot mg50"));
+	todos.insert(Todo(3, "break remote control console's W8"));
+	todos.insert(Todo(2, "watch movie"));
+	print_unordered_set(todos);
+	std::cout<<"------------------"<<std::endl;
+	
+	return 0;
+}
+
 
 /*
 [0.	들어가기에 앞서]
@@ -261,8 +365,32 @@ int main(){
 1.	멀티셋 & 멀티맵은 셋 & 맵과 달리 중복이 허용된다! 
 
 [5.	정렬되지 않은 셋과 맵(unordered_set, unordered_map)]
-1.	 
-
+1.	말 그대로 원소들이 순서대로 정렬되어 들어가지 않는다. 거의 랜덤한 순서로 나온다!
+2.	명탐정코난: "여기서 잠깐!" unordered_set에는 한가지 놀라운 점이 있는데, insert, erase, find 모든 작업이 O(1)로 수행된다는 점이다! 그 원리는 unordered_set&map의 구현에 있다(feat. 해시함수).
+	unorder(로 줄여 말하겠다)는 삽입과 검색 이전에 해시 함수(Hash function)를 사용하는데, 이는 임의의 크기의 데이터를 고정된 크기(일정 범위의 정수값)의 데이터로 대응시켜주는 함수이다. 
+	unorder의 해시함수는 1부터 D(=상자의 수)까지의 값을 반환하고, 그 해시값(해시함수로 계산한 값)을 원소를 저장할 상자의 번호로 삼는다. 해시함수는 구조상 최대한 1부터 D까지 고른 값을 반환하도록 설계되어, 모든 상자를 고루고루 사용할 수 있다.
+	해시 함수의 가장 중요한 성질은, 만약 같은 원소를 해시 함수에 전달한다면 같은 해시값을 리턴한다는 점이다. 고로 빠르게 원소를 탐색할 수 있다.
+	ex) 사용자"파란공이 unordered_set에 들어있나?"->파란공을 해시함수에 대입하면 1리턴->1번상자를 보니 파란공이 있음->존재! (이때 해시 함수가 해시값 계산을 상수 시간에 처리한다!)
+	 다만 다른 원소임에도 불구하고 같은 해시값을 갖는 경우가 있는데 이를 해시 충돌(hash collision)이라고 한다. ex)이 경우 같은 상자에 다른 원소들이 있게 됨.
+	즉, input의 해시값을 계산하고, 해당하는 상자에 모든 원소들을 탐색해야 한다.(그렇게 하지 않게 하기 위해 최대한 1부터 N까지 고른 값을 반환하도록 설계)
+	고로, 운이 매우 나쁘면 모든 input이 같은 상자에 들어가서 평균적으로 O(1)이지만, 최악의 겨우 O(N)으로 수행될 수 있다. (p.s set과 map은 최악과 평균 모두 O(logN)
+	 이 때문에 보통의 경우 안전하게 맵이나 셋을 사용하고, 최적화가 매우 필요할 경우에 해시 함수를 잘 설계해서 unordered_set과 unordered_map을 사용하는 것이 좋다.(p.s 기본 타입들(in, double etc..)과 std::string은 자체적으로 해시 함수가 내장되어 있어 그냥 사용하면 된다.)
+3.	처음부터 많은 개수의 상자(곧 메모리)를 사용할 수 없기에, 상자의 개수는 원소가 많아질수록 점진적으로 늘어나는데, 이때마다 해쉬함수를 바꿔야하기에 모든 원소를 처음부터 끝까지 insert해야한다. 이를 rehash라고 하며 O(N)의 시간이 걸린다.
+ 
+[6.	내가 만든 클래스를 'unordered_set/unordered_map'의 원소로 넣고 싶을 때]
+1.	셋이나 맵과 달리 직접 '해시 함수'를 만들어야 한다.(고로 셋과 맵 이용하3)
+	정렬하지 않기에 operator<가 필요하지 않지만, operator==는 해시 충돌 발생 시에 상자안에 원소들과 비교를 위해서 필요하다.
+	다행인 점은 C++에서 기본적인 타입들에 대한 해시 함수들을 제공하고 있어 이를 잘 활용하면 된다.
+2.	해시 함수를 직접 제작하는 일은 꽤나 어렵다. 왜냐면 unordered_map이 제대로 된 성능을 발휘하기 위해서는 해시 함수가 입력받은 키를 잘 흝뿌려야 하기 때문이다.
+	만약 해시 함수결과가 특정 범위의 값에 집중되어 있다면, 성능이 set, map보다 못할 뿐만 아니라 악의적인 사용자가 허점을 이용하여 프로그램의 성능을 저하시킬 수 있다.
+	 고로, 기본 타입에 대한 해시함수를 사용하거나, map이나 set을 사용하는 것이 좋다.
+	 
+[7.	그렇다면 뭘 써야되?]
+	-데이터의 존재 유무만 궁금할 경우->set
+	-중복 데이터를 허락할 경우->multiset(insert, erase, find 모두 O(logN), 최악도 O(logN)
+	-데이터에 대응되는 데이터를 저장하고 싶을 경우->map
+	-중복 키를 허락할 경우->multimap(insert, erase, find 모두 O(logN), 최악도 O(logN)
+	-속도가 매우매우 중요해서 최적화를 해야하는 경우->unordered_set, unordered_map(insert, erase, find 모두 O(1), 최악은 O(N) 
 */ 
 
 //오늘은 뭔가 꾸리꾸리 하구만,,, 태풍이 와서 그런 것인지,,,다이어트를 해서 그런 것인지,,,돌아오자 선우정아 노래를 들어서 그런 것인지,,,
