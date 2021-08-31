@@ -22,8 +22,9 @@ int main(){
 	return 0;
 }*/
 
-/*1
+//1 4
 #include <cstring>
+#include <vector>
 
 class MyString{
 	char *string_content;
@@ -34,6 +35,7 @@ class MyString{
 		MyString();
 		MyString(const char *str);
 		MyString(const MyString &str);
+		MyString(MyString &&str) noexcept;//move constructor. make compiler use move constructor by telling it's safe for using.
 		
 		void reserve(int size);
 		MyString operator+(const MyString &s);
@@ -65,7 +67,20 @@ MyString::MyString(const MyString &str){
 	for(int i=0; i!=string_length; i++)
 		string_content[i]=str.string_content[i];
 }
-MyString::~MyString(){ delete[] string_content;}
+//get rvalue as argument.
+MyString::MyString(MyString &&str) noexcept{//for define reference of rvalue, we have to use two &. so it get rvalue as argument that's MyString type.
+	std::cout<<"call move constructor!"<<std::endl;//str is rvalue.
+	string_length=str.string_length;
+	string_content=str.string_content;//just copy address unlike normal copy constructor.
+	memory_capacity=str.memory_capacity;
+	
+	str.string_content=nullptr;//no delete[] when deleting of tempoary object.
+	//because we set string_content to str.string_content. so when str's destructor called, make it exist by setting str.string_content to nullptr. no delete real address, delete fake address.
+}
+MyString::~MyString(){ 
+	if(string_content)//if string_content is nullptr, no delete.
+		delete[] string_content;
+}
 void MyString::reserve(int size){
 	if(size>memory_capacity){
 		char *prev_string_content=string_content;
@@ -101,29 +116,43 @@ void MyString::println(){
 }
 
 int main(){
+	//4 for show using of move constructor efficiently. 
 	MyString str1("abc");
 	MyString str2("def");
-	std::cout<<"-----------------"<<std::endl;
-	MyString str3=str1+str2;//print structor! and copy structor! but it's not needed. so we have to copy slision if str1 and str2's size is too big. it's unefficient.
-	str3.println();
+	std::cout<<"-----------------"<<std::endl;//My conpiler doesn't print "call copy constructor!", it just do copy elision smartly. 
+	MyString str3=str1+str2;//print constructor! and copy constructor! but it's not needed. so we have to copy slision if str1 and str2's size is too big. it's unefficient.
+	str3.println();//and now, constructor called and move constructor called.
+	
+	//5
+	MyString s("abc");
+	std::vector<MyString> vec;
+	vec.resize(0);
+	
+	std::cout<<"add first element ---"<<std::endl;
+	vec.push_back(s);
+	std::cout<<"add second element ---"<<std::endl;
+	vec.push_back(s);
+	std::cout<<"add third element ---"<<std::endl;
+	vec.push_back(s);
+	//it doesn't use move constructor!! it uses copy constructor wtf!
+	//Let's add noexcept keyword at move constructor. it use move constructor successfully!
 	
 	return 0;
-}*/
+}
 
-//2
+/*2
 int& func1(int& a){return a;}
 int func(int b){return b;}
 int main(){
 	int a=3;
 	func1(a)=4;//possible
 	std::cout<<&func1(a)<<std::endl;
-	
 	int b=2;
 	a=func(b);//end of sentence, no substance. it's be right value. right value can placed right but
 	std::cout<<&func(b)<<std::endl;//can't check address of right value
 	
 	return 0;
-} 
+} */
 
 
 
@@ -149,6 +178,33 @@ int main(){
 	이와 같은 문제(PX?)는 COSNT mYsTRING&이 좌측값과 우측값 모두 받을 수 있다는 점에서 비롯되어 좌측값말고 우측값만 특이적으로 받을 수 있는 우측값 레퍼런스(c++11)를 이용하면 된다. 
 
 [4.	우측값 레퍼런스]
-1.	 
- 
+1.	일반적으로 오측값 레퍼런스는 아래와 같은 방식으로 사용이 가능하다.
+	int a;
+	int& l_a=a;
+	int& ll_a=3;//impossible  뭐야 감히 레퍼런스에 우측값을 넣어? 
+	
+	int&& r_b=3;우측값을 레퍼런스 할거에요 && 
+	int&& rr_b=a;//impossible. 뭐야 이건 좌측값이잖아 
+	
+	***
+	const int& a=3;읽기만 가능하기에 우측값을 레퍼런스로
+	int&& b=3;우측값을 b에 우측값레퍼런스로 받는데 읽기도 가능 변경도 가능. 즉 레퍼런스인데 받는것이 우측값이 가능하게끔.
+	
+	***
+	MyString&& str3=str1+str2;str3이 소멸되지 않은 임시객체를 가리킴by move constructor 
+	MyString str3=str1+str2;str3이 임시객체를 복사생성함by copy constructor 
+	이동생성자가 불필요한 생성자를 최소화함. 
+	 
+2.	우측값 레퍼런스의 재미있는 특징은 레퍼런스 하는 임시 객체가 소멸되지 않도록 붙들고 있다는 점이다.
+	MyString&& str3=str1+str2;
+	str3.println();
+	에서 str3이 str1+str2가 리턴하는 임시 객체의 레퍼런스가 되면서 그 임시 객체가 소멸되지 않도록 한다. 
+
+[5.	이동 생성자 작성 시 주의할 점]
+1.	MyString을 C++컨테이너들, vector같은 것에 넣는데에 이동생성자를 반드시 noexcept로 명시해야 한다.
+	Vector는 새 원소를 추가할 때, 메모리가 부족하면 트기가 커진 새 공간 할당 후, 새 메모리로 옮기게 된다. 
+	만약 복사생성하는 과정에서 예외가 발생한다면, 새로운 메모리를 소멸시킨 후 예외를 전하면 그 전에 메모리도 남아있고, 새로운메모리도 해젝가되니 효율적이다.
+	 다만 문제는 이동생성자를 이용하여 이동생성하는 과정에서 예외가 발생하는 경우이다. 이동생성의 경우 새 메모리를 해제하면 이미 데이터가 이동된 상태인지라 오류가 발생한 메모리를
+	섯불리 해제할 수 없다. 고로 vector의 경우 이동생성자에서 예외가 발생했을 때, 이를 제대로 처리할 수 없고 이는 다른 컨테이너들도 동일하다.
+	 그렇기에 vector는 이동생성자가 noexcept(예외절대없음)이 아닌 이상 이동생성자를 사용하지 않는다.  
 */
