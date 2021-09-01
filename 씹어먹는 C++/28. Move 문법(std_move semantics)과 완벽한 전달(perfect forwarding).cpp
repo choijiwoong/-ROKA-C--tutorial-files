@@ -2,8 +2,6 @@
 #include <cstring>
 #include <utility>//for use move function that makes lvalue to rvalue
 
-//그렇다면 아예 우측값을 레퍼런스로 받을 수 있도록 const A& 와 A& 따로 만들어주는 방법이 있습니다. 아래와 같이 말이지요.
-
 /* 0 1
 class MyString {
   char *string_content;
@@ -177,9 +175,16 @@ int main(){
 	return 0;
 }*/
 
-//3
+/*3
 template <typename T>
-void wrapper(T u){//error occur 'void wrapper(T& u)'. 
+void wrapper(T& u){//error occur 'void wrapper(T& u)'. so make const T& u too.
+	std::cout<<"guess to T&"<<std::endl;
+	g(u);
+}
+
+template <typename T>
+void wrapper(const T& u){
+	std::cout<<"guess to const T&"<<std::endl;
 	g(u);
 }
 
@@ -208,11 +213,40 @@ int main(){
  	//make error that "error: cannot bind non-const lvalue reference of type 'A&' to an rvalue of type 'A'
  	//In g(A()), A() is not const so compiler guess T to class A. than A& can't be rvalue's reference. it makes compile error.
  	
- 	//So let's make both of const A& and A&
- 	//
+ 	//So let's make both of const A& and A& for getting rvalue as reference
+ 	//(wrapper(A()) guessed to const T&..? reference gets rvalue as const)
 	
 	return 0;
-} 
+} */
+
+//4
+template <typename T>
+void wrapper(T&& u){
+	g(std::forward<T>(u));
+}
+
+class A{};
+
+void g(A& a) {std::cout<<"call lvalue reference"<<std::endl;}
+void g(const A& a){std::cout<<"call lvalue const reference"<<std::endl;}
+void g(A&& a){std::cout<<"call rvalue reference"<<std::endl;}
+
+int main(){
+	A a;
+	const A ca;
+	
+	std::cout<<"original --------"<<std::endl;
+	g(a);
+	g(ca);
+	g(A());
+	
+	std::cout<<"Wrapper ----"<<std::endl;
+	wrapper(a);
+	wrapper(ca);
+	wrapper(A());
+	
+	return 0;
+}
 
 
 /*
@@ -246,6 +280,33 @@ int main(){
 	emplace_back함수를 사용하면 vec.emplace_back(1,2,3)를 사용하여 내부에서 A생성자 호출 후 벡터원소로 추가할 수 있다.
 	 (근데 사실 push_back도 컴파일러가 알아서 최적화해서 emplaced_back과 동일한 어셈블리를 생성함. 사실 emplace_back은 예상치 못한 생성자가 호출될 수 있어서 push_back이 권장되긴 함 이상 몰래카메라..?)
 3.	그렇다면 이러한 의도하지 않은 생성자가 호출될 수도 있다는 점을 고려하여 어떻게 하면 wrapper함수를 잘 정의할 수있을까? 
-	
+4.	함수 g가 인자를 하나가 아니라 2개라면, wrapper(T& u, T& v) wrapper(T& u, T& v) wrapper(T& u, const T& v) wrapper(const T& u, const T& v)꼴로
+	모든 경우를 처리해야한다. 이유는 일반적인 레퍼런스가 우측값을 받을 수 없기 때문이다. 그렇다고 const로만 할 수 없는 것이 nonconst 레퍼런스도 const로 캐스팅되어 들어가기 때문이다.
 
+[4.	보편적 레퍼런스(Universal reference)]
+1.	wrapper함수는 인자로 아예 T&&를 받아버리고 있다. 템플릿 인자 T에 대해서, 우측값 레퍼런스를 받는 형태를 보편적 레퍼런스(Universal reference)라고 한다.
+	이는 우측값만 받는 레퍼런스와는 다른게
+	void show_value(int&& t){ std::cout<<"rvalue : "<<t<<std::endl; }
+	int main(){
+		show_value(5);//rvalue possible
+		
+		int x=3;
+		show_value(x);//error
+	}는 당연히 &&형태는 우측값만을 인자로 받을 수 있기에 오류가 발생한다.
+	하지만 
+	template<typename T>
+	void wrapper(T&& u){와 같은 우측값 레퍼런스는 다른 보편적 레퍼런스인데, 이는 우측값 뿐만이 아닌 좌측값 역시 받아낼 수 있다.
+	 좌측값이 왔을 경우 레퍼런스 겹침 규칙(reference collapsing rule)에 따라  T의 타입을 추론하게 된다. 
+	typedef int& T;
+	T& r1;//int& &; r1은 int& 
+	T&& r2;//int& &&; r2는 int& 
+	
+	typedef int&& U;
+	U& r3;//int&& &;r3은 int& 
+	U&& r4;//int && &&; r4는 int&& 
+	(쉽게, &=1, &&=0에서 OR연산한 결과랑 같음.) 
+	//여기부터 이해 잘 안감. 가뜩이나 이해하기 어려운데!!! 
+	wrapper(a) wrapper(ca)의 경우 T가 각각 A&와 const A&로 추론될 것이고, wrapper(A())의 경우 T가 단순히 A로 추론된다. 
+	그냥 읽자.  위 두 개의 호출의 경우 T 가 각각 A& 와 const A& 로 추론될 것이고, 부터. 오늘은 좀 쉬어야겠다. 너무많이 뛰었다.
+	아니 연병장26바퀴에 팔굽140개하고 축구를 2시간반동안 뛴다는게 말이 돼?
 */
