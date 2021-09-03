@@ -1,7 +1,5 @@
 #include <iostream>
 
-//C++ 14 부터 unique_ptr 을 간단히 만들 수 있는 std::make_unique 함수를 제공합니다.
-
 /*1
 class A{
 	int *data;
@@ -38,8 +36,8 @@ int main(){
 	//exception is well handled normally, but we can't avoid memory leak. than how can we handle this situation?->[2. Resource Acquisition Is Initialization-RAII]
 }*/
 
-//3, 5
 #include <memory>
+/*3, 5
 class A{
 	int *data;
 	
@@ -98,6 +96,58 @@ int main(){
 	
 	std::unique_ptr<A> pa(new A());
 	do_something(pa.get());//if we call get() of unique_ptr, it returns address of real object.
+}*/
+
+/*7
+class Foo{
+	int a, b;
+	
+	public:
+		Foo(int a, int b):a(a), b(b){ std::cout<<"call constructor!"<<std::endl; }
+		void print(){ std::cout<<"a : "<<a<<", b : "<<b<<std::endl; }
+		~Foo(){ std::cout<<"call destructor!"<<std::endl; }
+};
+
+int main(){
+	auto ptr=std::make_unique<Foo>(3, 5);//make_unique function pass perfectly arguments to constructor of class that is passed by template argument.
+	//we don't need to use like 'std::unique_ptr<Foo> ptr(new Foo(3,5));' now, just use 'std::make_unique<Foo>(3,5);'
+	ptr->print();
+}*/
+
+//8
+#include <vector>
+
+class A{
+	int *data;
+	
+	public:
+		A(int i){
+			std::cout<<"get resource!"<<std::endl;
+			data=new int[100];
+			data[0]=i;
+		}
+		
+		void some(){ std::cout<<"we can use like common pointer!"<<std::endl; }
+		void some2(){ std::cout<<"value : "<<data[0]<<std::endl; } 
+		
+		~A(){
+			std::cout<<"free resource!"<<std::endl;
+			delete[] data;
+		}
+};
+
+int main(){
+	std::vector<std::unique_ptr<A>> vec;
+	std::unique_ptr<A> pa(new A(1));
+	
+	//vec.push_back(pa);
+	//error occur! it copy pa for input data in vector. but unique_ptr's copy constructor is deleted function.
+	//so we have to move pa to inside of vector to overloading getting rvalue reference of push_back.
+	
+	vec.push_back(std::move(pa));//overload of push_back that receive rvalue reference
+	
+	vec.emplace_back(new A(1));//It's like vec.push_back(std::unique_ptr<A>(new A(1));
+	vec.back()->some2();
 }
 
 
@@ -163,6 +213,19 @@ int main(){
 	-만약 소유권을 이동하고자 한다면, unique_ptr을 move하면 된다.
 
 [7.	unique_ptr을 쉽게 생성하기]
-1.	 
- 
+1.	C++14부터 unique_ptr을 간단하게 만들 수 있는 std::make_unique함수를 제공한다. 
+2.	std::unique_ptr<Foo> ptr(new Foo(3, 5)); 에서 Foo를 2번 입력하지 않게 std::make_unique<Foo>(3, 5);로 사용
+
+[8.	unique_ptr을 원소로 가지는 컨테이너]
+1.	copy constructor를 호출하지 않게 move constructor을 오버로딩시켜야 한다.
+2.	emplace_back함수를 이용하여 vector안에 unique_ptr을 직접 생성하면서 집어넣을 수 있다. 즉 불필요한 생성->이동과정을 생략할 수 있다.
+	emplace_back은 전달된 인자를 완벽한 전달(perfect forwarding)을 통해 직접 unique_ptr<A>의 생성자에 전달해서, vector맨 뒤에 unique_ptr<A> 객체를 생성해버리게 된다. 즉 애초에 생성을 vector맨 뒤에 하기에 불필요한 이동 연산이 필요없게 된다. 
+	 다만 emplace_back사용 시 어떠한 생성자가 호출되는지를 주의해야 하는데,
+	std::vector<int> v;
+	v.emplace_back(100000);
+	의 경우 100000의 int 값을 v에 추가하지만
+	std::vector<std::vector<int>> v;
+	v.emplace_back(100000);
+	을 하게 되면 원소가 100000개 들어있는 벡터를 v에 추가하게 된다. 
+
 */
