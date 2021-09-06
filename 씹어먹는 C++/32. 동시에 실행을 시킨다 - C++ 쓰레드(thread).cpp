@@ -1,7 +1,5 @@
 #include <iostream>
 
-//먼저 worker 함수는 덧셈을 수행할 데이터의 시작점과 끝점을 받아서 해당 범위 내의 원소들을 모두 더한 후, 그 결과를 result 에 저장하게 됩니다.
-
 /*3 example crawling website
 int main(){
 	map<string, string> url_and_content;
@@ -45,7 +43,7 @@ int main(){
 
 #include <cstdio>
 #include <vector> 
-//5
+/*5
 using std::thread;
 using std::vector;
 void worker(vector<int>::iterator start, vector<int>::iterator end, int* result){
@@ -56,7 +54,7 @@ void worker(vector<int>::iterator start, vector<int>::iterator end, int* result)
 	
 	//get id of thread
 	thread::id this_id=std::this_thread::get_id();
-	printf("calculated result of %d to %d of thread %x : %d \n", *start, *(end-1), sum);
+	printf("calculated result of %d to %d of thread %x : %d \n", *start, *(end-1), sum);//not std::cout!! 
 }
 
 int main(){
@@ -79,6 +77,26 @@ int main(){
 		total+=partial_sums[i];
 	
 	std::cout<<"total sum : "<<total<<std::endl;
+}*/
+
+//6
+using std::thread;
+using std::vector;
+
+void worker(int& counter){
+	for(int i=0; i<10000; i++)
+		counter++;
+}
+int main(){
+	int counter=0;
+	
+	vector<thread> workers;
+	for(int i=0; i<4; i++)
+		workers.push_back(thread(worker, std::ref(counter)));
+	for(int i=0; i<4; i++)
+		workers[i].join();
+		
+	std::cout<<"Final result of Counter : "<<counter<<std::endl;//diffenent value!
 }
 
 
@@ -118,7 +136,11 @@ int main(){
 	 쓰레드를 detach하게 되면 main함수에서는 쓰레드들이 종료될 때 까지 기다리지 않는다. 고로 문자열을 표기하기도 전에 프로세스가 종료되거나 어느정도 실행되고 종료될 수 있다. 
 
 [5.	쓰레드에 인자 전달하기]
-1.	 
+1.	thread::id this_id=std::this_thread::get_id();로 어떤 쓰레드에서 작업중인지를 볼 수 있다.
+	std::cout<<A<<B의 경우 A가 출력되는 동안은 다른 쓰레드가 내용을 출력할 수 없게 보장을 하지만, A의 출력이 끝나고 B가 출력되기 전에는 다른 쓰레드의 내용을 출력시킬 수 있기에
+	printf를 사용했다. printf는 ""안에 있는 문자열을 출력할 때, 다른 쓰레드들이 그 사이에 메세지를 집어넣지 못하게 막아 방해받지 않고 출력이 가능하다. 
 
+[6.	다른 쓰레드에서 메모리를 같이 접근한다면?]
+1.	다음강좌에서 알아보자 
 
 */
