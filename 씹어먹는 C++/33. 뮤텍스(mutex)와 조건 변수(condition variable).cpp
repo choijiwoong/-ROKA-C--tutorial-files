@@ -2,16 +2,18 @@
 #include <thread>
 #include <vector>
 #include <mutex> 
-//와 같이 나옵니다. 일단 위 코드가 어떻게 생산자-소비자 패턴을 구현하였는지 살펴봅시다.
+
 #include <chrono>//std::chrono::miliseconds
 #include <queue>
 #include <string> 
+#include <condition_variable> 
 
 /*1
 void worker(int& counter){
 	for(int i=0; i<10000; i++)
 		counter+=1;
 }
+
 
 int main(){
 	int counter=0;
@@ -134,25 +136,25 @@ int main(){
 	std::cout<<"finish!"<<std::endl;
 }*/
  
-//4
+/*4
 void producer(std::queue<std::string>* downloaded_pages, std::mutex* m, int index){//storage for downloaded pages, mutex for thread work, index for expression of thread and wait second
 	for(int i=0; i<5; i++){//for work & make webpage's content by i
 		std::this_thread::sleep_for(std::chrono::milliseconds(100*index));//wait 
 		std::string content="Website : "+std::to_string(i)+" from thread("+std::to_string(index)+")\n";//make webpage's content
 		
-		m->lock();//data must be in critical section
-		downloaded_pages->push(content);//pass content to storage for downloaded pages.
+		m->lock();//data must be in critical section because downloaded_pages is shared by threads for prevention of race condition.
+		downloaded_pages->push(content);//pass content to storage for downloaded pages.  
 		m->unlock();
 	}
 }
 
 void consumer(std::queue<std::string>* downloaded_pages, std::mutex* m, int* num_processed){//storage for sownloaded pages, mutex for thread work, num_processed for expression how many work do
-	while(*num_processed<25){//num of pages that we will handle is 5 * 5 =25(5 thread, 5 content)
+	while(*num_processed<25){//num of pages that we will handle is 5 * 5 =25(5 thread, 5 content). In consumer's perception, it doesn't know when it get work so it must execute in while loop.
 		m->lock();
 		if(downloaded_pages->empty()){//if download_pageds empty, wait for a second. give priority to producer! commonly downloading speed is lower than consumer. so we pass priority
-			m->unlock();//for work other(producer) thread
+			m->unlock();//for work other(producer) thread. if it's not in this scope, it will make deadlock
 			
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));//wait this thread
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));//wait this thread for efficiency because CPU's speed is faster than download speed. 
 			continue;//recheck condition
 		}
 		
@@ -165,13 +167,13 @@ void consumer(std::queue<std::string>* downloaded_pages, std::mutex* m, int* num
 		
 		//content handling part
 		std::cout<<content;
-		std::this_thread::sleep_for(std::chrono::milliseconds(80));
+		std::this_thread::sleep_for(std::chrono::milliseconds(80));//suppose working time
 	}
 }
 
 int main(){
 	//downloaded pages make to list, not handled.
-	std::queue<std::string> downloaded_pages;
+	std::queue<std::string> downloaded_pages;//queue(FIFO) for first downloaded file first handling.
 	std::mutex m;
 	std::vector<std::thread> producers;
 	
@@ -186,6 +188,71 @@ int main(){
 	for(int i=0; i<5; i++)
 		producers[i].join();
 		
+	for(int i=0; i<3; i++)
+		consumers[i].join();
+}*/
+
+
+//5 condition_variable used version of producer & consumer
+void producer(std::queue<std::string>* downloaded_pages, std::mutex* m, int index, std::condition_variable* cv){
+	for(int i=0; i<5; i++){
+		std::this_thread::sleep_for(std::chrono::milliseconds(100*index));
+		std::string content="Website : "+std::to_string(i)+" from thread("+std::to_string(index)+")\n";
+		
+		m->lock();
+		downloaded_pages->push(content);
+		m->unlock();
+		
+		cv->notify_one();//notify "content is ready" to consumer
+		//it wake up one of thread and let it check condition. if condition is true, let it do work.
+	}
+}
+void consumer(std::queue<std::string>* downloaded_pages, std::mutex* m, int* num_processed, std::condition_variable* cv){
+	while(*num_processed<25){
+		std::unique_lock<std::mutex> lk(*m);//it's simmilar to lock_guard.
+		
+		cv->wait(lk, [&] {return !downloaded_pages->empty() || *num_processed==25;});
+		//we have to pass condition to condition_variable. if that condition is false, it sleep forever after unlocking lk before who wake it up.
+		//it condition is true, cv.wait is returned and so next code.
+		
+		if(*num_processed==25){//for check whether cv's returned reason is end of works.
+			lk.unlock();
+			return;//exit thread. all works are done.
+		}
+		//else new work input
+		std::string content=downloaded_pages->front();
+		downloaded_pages->pop();
+		
+		(*num_processed)++;
+		lk.unlock();
+		
+		std::cout<<content;
+		std::this_thread::sleep_for(std::chrono::milliseconds(80));
+	}
+}
+int main(){
+	std::queue<std::string> downloaded_pages;
+	std::mutex m;
+	std::condition_variable cv;
+	std::vector<std::thread> producers;
+	
+	for(int i=0; i<5; i++)
+		producers.push_back(std::thread(producer, &downloaded_pages, &m, i+1, &cv));
+	
+	int num_processed=0;
+	std::vector<std::thread> consumers;
+	for(int i=0; i<3; i++)
+		consumers.push_back(std::thread(consumer, &downloaded_pages, &m, &num_processed, &cv));
+		
+	
+	for(int i=0; i<5; i++)
+		producers[i].join();
+	
+	//if all producer's works are done, there should be some sleeping thread.
+	//if we don't wake up sleeping thread, sleeping threads in condumer will not be joined.
+	cv.notify_all();//wake up all threads that is sleeping with checking condition.
+	//In this time, num_processed will be 25 already, so all threads will wake up.
+	
 	for(int i=0; i<3; i++)
 		consumers[i].join();
 }
@@ -247,6 +314,24 @@ int main(){
 [4.	생산자(Producer)와 소비자(Consumer) 패턴]
 1.	멀티 쓰레드 프로그램에서 가장 많이 등장하는 것이 생산자(producer)-소비자(consumer)패턴이다.
  	생산자는 무언가 처리할 일을 받아오는 쓰레드를 의미한다. 크롤링및 분석 프로그램을 생각해보자. 크롤링이 생산자고 분석이 소비자이다.
-	  
+2.	queueu대신 vector도 가능하지만, 가장 먼저 들어온 page가 first element일텐데 이르 제가하는 것은 다소 느리기 때문이다. 
+3.	위의 예시는 상당히 비효율적인게 consumer에서 *num_processed가 <25일때 무한 루프를 돌며 producer의 요청이 있는지를 항상 확인하고 있다(어느정도의 sleep은 만들었지만. )
+	고로 아예 Consumer이 일이 없으면 재워두고 Producer가 일이오면 consumer에게 알려주는 것이 효율적이다.
+	
+[5.	condition_variable]
+1.	어떤 조건이 만족할 때 까지 자라! 라는 명령을 조건 변수(condition variable)을 통해 해결할 수 있다.
+2.	lock_guard는 생성자에서만 lock을 할 수 있는데, unique_lock은 unlock후에도 다시 lock을 할 수 있다. 
+	더불어 cv->wait함수가 unique_lock을 인자로 받기에 사용했다. 
+	
+[6.	뭘 배웠지?]
+1.	여러 쓰레드에서 같은 객체의 값을 수정하면 Race condition이 발생한다. 
+	이것을 해결하기 위해 뮤텍스를 사용할 수 있지만 반환을 꼭 해야하기 때문에 안전하게 lock_guard나 unique_lock등을 사용한다. 
+	뮤텍스를 사용할 때 데드락이 발생하여 디버깅이 어려울 수 있기에 주의해야 한다.
+	생산자-소비자 패턴은 condition_variable을 사용하면 보다 효율적이고 쉬운 구현이 가능하다.
 
+[7.	질의를 통한 보강]
+1.	thread를 만드는데에 작업이 필요하기도 하고, 과다하게 많아지면 context-switcing때문에 전체 처리 속도가 늦어질 수 있기 때문에
+	condition_variable을 통해 작업이 있을때 쓰레드를 만들기보다 이미 만들어놓은 쓰레드를 대기시켰다. 
+2.	잠자는 이발사 문제(뮤텍스로 해결), 식사하는 철학자들 문제(한명을 반대로 움직이게해 대칭성을 제거하여 교착상태를 막는다), 독자-저자 문제(뮤텍스 사용하여 쓰는동안엔 저자만 접근), 생산자-소비자문제(생산자는 빈공간이 생긴 뒤에 mutex확인 후 진입, 소비자는 아이템이 생긴 뒤에 mutex로 진입) 
+3.
 */
