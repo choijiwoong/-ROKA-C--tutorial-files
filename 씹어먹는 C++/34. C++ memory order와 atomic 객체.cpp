@@ -2,8 +2,7 @@
 #include <atomic>
 #include <thread>
 #include <vector> 
-
-//atomic 객체들의 경우 원자적 연산 시에 메모리에 접근할 때 어떠한 방식으로 접근하는지 지정할 수 있습니다.
+#include <cstdio>//6
 
 /*3
 //C++ version 
@@ -28,7 +27,7 @@ a:
 	.zero 4
 */
 
-//5
+/*5 std::atomic for atomically calculation
 void worker(std::atomic<int>& counter){
 	for(int i=0; i<10000; i++)
 		counter++;//lock add DWORD PTR [rdi], 1  it's expressed by one line in assembly. 
@@ -49,6 +48,33 @@ int main(){
 	std::atomic<int> x;
 	std::cout<<"is lock free ? : "<<std::boolalpha<<x.is_lock_free()<<std::endl;//we can check if it can be changed to atomic code by .is_lock_free() 
 	//lock means do work atomically in assembly. lock free means we can do work correctly without object like mutex(lock, unlock)
+}*/
+
+//6
+using std::memory_order_relaxed;
+void t1(std::atomic<int>* a, std::atomic<int>* b){
+	b->store(1, memory_order_relaxed);//write b=1
+	int x=a->load(memory_order_relaxed);//read x=1
+	
+	printf("x : %d \n", x);
+}
+
+void t2(std::atomic<int>* a, std::atomic<int>* b){
+	a->store(1, memory_order_relaxed);//write a=1
+	int y=b->load(memory_order_relaxed);//read y=b
+	
+	printf("y: %d \n", y);
+}
+int main(){
+	std::vector<std::thread> threads;
+	std::atomic<int> a(0);
+	std::atomic<int> b(0);
+	
+	threads.push_back(std::thread(t1, &a, &b));
+	threads.push_back(std::thread(t2, &a, &b));
+	
+	for(int i=0; i<2; i++)
+		threads[i].join();
 }
 
 
@@ -118,5 +144,7 @@ int main(){
 	CPU에 따라 위의 lock add와 같은 명령이 없어 원자적인 코드를 생성할 수 없는 경우도 있는데, 이는 atomic 객체의 연산들이 정말 원자적으로 구현될 수 있는지를 확인하는 is_lock_free()함수를 호출하면 된다.
 
 [6.	memory_order]
-1.	
+1.	atomic객체들의 경우 원자적 연산 시에 메모리에 접근할 때 어떠한 방식을 접근하는지 지정할수 있다.
+	memory_order_relexed는 가장 느슨한 조건이다. 즉, 이 방식을 사용할 경우, 주위의 다른 메모리 접근들과 순서가 바뀌어도 무방하다.
+	 
 */ 
