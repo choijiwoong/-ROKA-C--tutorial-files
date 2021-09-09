@@ -50,11 +50,12 @@ int main(){
 	//lock means do work atomically in assembly. lock free means we can do work correctly without object like mutex(lock, unlock)
 }*/
 
-//6
+/*6 for show concept of std::memory_order_relaxed 
 using std::memory_order_relaxed;
 void t1(std::atomic<int>* a, std::atomic<int>* b){
 	b->store(1, memory_order_relaxed);//write b=1
 	int x=a->load(memory_order_relaxed);//read x=1
+	//these can be changed by CPU. memory_order_realaxed gives infinite free of calculation order to CPU. so CPU can calculate fast. 
 	
 	printf("x : %d \n", x);
 }
@@ -75,8 +76,195 @@ int main(){
 	
 	for(int i=0; i<2; i++)
 		threads[i].join();
+}*/
+
+/*6 example of using std::memory_order_relaxed
+using std::memory_order_relaxed;
+void worker(std::atomic<int>* counter){
+	for(int i=0; i<10000; i++){
+		//other works
+		counter->fetch_add(1, memory_order_relaxed);//It's same to counter++ but it can set memory approach way unlike counter++
+		//The reason that we can use memory_order_relaxed is we don't have to prohibit relocation with other memory operations.
+		//It's not problem if counter is added 1 resaultly without ordering of operation.
+	}
+}
+int main(){
+	std::vector<std::thread> threads;
+	std::atomic<int> counter(0);
+	
+	for(int i=0; i<4; i++)
+		threads.push_back(std::thread(worker, &counter));
+	for(int i=0; i<4; i++)
+		threads[i].join();
+		
+	std::cout<<"Counter : "<<counter<<std::endl;
+}*/
+
+/*6 limit of std::memory_order_relaxed
+using std::memory_order_relaxed;
+
+void producer(std::atomic<bool>* is_ready, int* data){
+	*data=10;
+	is_ready->store(true, memory_order_relaxed);//if CPU change order, it can pass signal is_ready is true before *data=10;
 }
 
+void consumer(std::atomic<bool>* is_ready, int* data){
+	while(!is_ready->load(memory_order_relaxed)){//read is_ready's value by load function with rule memory_order_relaxed that allow changable to CPU. 
+	}
+	std::cout<<"Data : "<<*data<<std::endl;//if CPU change order, it can print Data : ~ before get signal is_ready is true or before set *data=10 in producer
+}
+
+int main(){
+	std::vector<std::thread> threads;
+	std::atomic<bool> is_ready(false);
+	int data=0;
+	
+	threads.push_back(std::thread(producer, &is_ready, &data));
+	threads.push_back(std::thread(consumer, &is_ready, &data));
+	for(int i=0; i<2; i++)
+		threads[i].join();
+	//it can print Data : 0!
+}*/
+
+/*6 solution of limit of std::memory_order_relaxed by using std::memory_order_release & std::memory_order_acquire
+void producer(std::atomic<bool>* is_ready, int* data){
+	*data=10;
+	is_ready->store(true, std::memory_order_release);//it means not replacing by CPU now without this line. up->down X
+	//so *data=10 can't here by CPU
+}
+
+void consumer(std::atomic<bool>* is_ready, int* data){
+	//so std::cout can't here by CPU
+	while(!is_ready->load(std::memory_order_acquire)){//it means let replacing by CPU now without this line. down->up X
+	}
+	std::cout<<"Data : "<<*data<<std::endl;
+}
+
+int main(){
+	std::vector<std::thread> threads;
+	std::atomic<bool> is_ready(false);
+	int data=0;
+	
+	threads.push_back(std::thread(producer, &is_ready, &data));
+	threads.push_back(std::thread(consumer, &is_ready, &data));
+	for(int i=0; i<2; i++)
+		threads[i].join();
+	//It's impossible print Data : 0!
+}*/
+
+/*6 example of understanding of release & acquire with synchronizing.
+using std::memory_order_relaxed;
+
+std::atomic<bool> is_ready;
+std::atomic<int> data[3];
+
+void producer(){
+	data[0].store(1, memory_order_relaxed);
+	data[1].store(2, memory_order_relaxed);
+	data[2].store(3, memory_order_relaxed);//these can replace each other, but it can't change to under of is_ready.st~
+	is_ready.store(true, std::memory_order_release);
+}
+
+void consumer(){
+	while(!is_ready.load(std::memory_order_acquire)){
+	}//wait ready of data
+	
+	std::cout<<"data[0] : "<<data[0].load(memory_order_relaxed)<<std::endl;//these can replace each other, but it can't change to upper of is_ready.lo~
+	std::cout<<"data[1] : "<<data[1].load(memory_order_relaxed)<<std::endl;
+	std::cout<<"data[2] : "<<data[2].load(memory_order_relaxed)<<std::endl;
+}
+
+int main(){
+	std::vector<std::thread> threads;
+	
+	threads.push_back(std::thread(producer));
+	threads.push_back(std::thread(consumer));
+	for(int i=0; i<2; i++)
+		threads[i].join();
+}*/
+
+/*6 for necessity of sequential consistency by memory_order_seq_cst
+using std::thread;
+std::atomic<bool> x(false);
+std::atomic<bool> y(false);
+std::atomic<int> z(0);
+
+void write_x() { x.store(true, std::memory_order_release); }
+void write_y() { y.store(true, std::memory_order_release); }
+
+void read_x_then_y(){
+	while(!x.load(std::memory_order_acquire)){
+	}
+	
+	if(y.load(std::memory_order_acquire)){
+		++z;
+	}
+}
+void read_y_then_x(){
+	while(!y.load(std::memory_order_acquire)){
+	}
+	if(x.load(std::memory_order_acquire)){
+		++z;
+	}
+}
+
+int main(){
+	thread a(write_x);
+	thread b(write_y);
+	thread c(read_x_then_y);
+	thread d(read_y_then_x);
+	
+	a.join();
+	b.join();
+	c.join();
+	d.join();
+	
+	std::cout<<"z : "<<z<<std::endl;
+	//it can print 0 because these code is happening release-acquire  synchronizing of write_x & read_x_then_y, write_y & read_y_then_x.
+	//it means x.store can execute before y.store in perception of read_x_then_y and y.store can execute before x.store in perception of read_y_then_x.
+	//if both situation is occured, both if's load become false, it makes z to 0..
+	//but if we use memory_order_seq_cst, it vouchs sequential consistency that makes we can see same calculation order at all threads.
+}*/
+
+//6 solution by using std::memory_order_seq_cst
+using std::memory_order_seq_cst;
+using std::thread;
+
+std::atomic<bool> x(false);
+std::atomic<bool> y(false);
+std::atomic<int> z(0);
+
+void write_x(){ x.store(true, memory_order_seq_cst); }
+void write_y(){ y.store(true, memory_order_seq_cst); }
+
+void read_x_then_y(){
+	while(!x.load(memory_order_seq_cst)){
+	}
+	if(y.load(memory_order_seq_cst)){
+		++z;
+	}
+}
+void read_y_then_x(){
+	while(!y.load(memory_order_seq_cst)){
+	}
+	if(x.load(memory_order_seq_cst)){
+		++z;
+	}
+}
+
+int main(){
+	thread a(write_x);
+	thread b(write_y);
+	thread c(read_x_then_y);
+	thread d(read_y_then_x);
+	
+	a.join();
+	b.join();
+	c.join();
+	d.join();
+	
+	std::cout<<"z : "<<z<<std::endl;//print 1 or 2???
+}
 
 /*
 [0.	들어가기 전에]
@@ -144,7 +332,19 @@ int main(){
 	CPU에 따라 위의 lock add와 같은 명령이 없어 원자적인 코드를 생성할 수 없는 경우도 있는데, 이는 atomic 객체의 연산들이 정말 원자적으로 구현될 수 있는지를 확인하는 is_lock_free()함수를 호출하면 된다.
 
 [6.	memory_order]
-1.	atomic객체들의 경우 원자적 연산 시에 메모리에 접근할 때 어떠한 방식을 접근하는지 지정할수 있다.
+1.	atomic객체들의 경우 원자적 연산 시에 어떠한 방식으로 메모리에 접근할지 지정할수 있다.
 	memory_order_relexed는 가장 느슨한 조건이다. 즉, 이 방식을 사용할 경우, 주위의 다른 메모리 접근들과 순서가 바뀌어도 무방하다.
-	 
+	다시 말해 서로 다른 변수의 relaxed메모리 연산은 CPU마음대로 재배치 할 수 있다(단일 쓰레드 관점에서 결과가 동일하다면)
+2.	relaxed메모리 연산을 사용하면 예상치 못한 결과가 나올 수 있지만, 어떠한 작업이 늦게 되든 안되든 결과적으로 수행만 되면 경우에 사용한다.(속도가 빨라지기에 CPU의 재배치로)
+3.	memory_order_acquire과 memory_order_release
+	memory_order_relaxed는 CPU에 너무 많은 자유를 부여하기에 실제로 사용되는 경우가 제한적이다.
+	 위의 예시와 같은 생산사-소비자 관계에서는 memory_order_relaxed를 사용할 수 없다. 
+	memory_order_release는 해당 명령 이전의 모든 메모리 명령들이 해당 명령 이후로 재배치 되는 것을 금지한다. 만약 같은 변수를 acquire으로 읽는 쓰레드는 release이전의 모든 명령들이 해당 쓰레드에 의해 관찰 될 수 있어야 한다.
+	memory_order_acquire은 해당 명령 뒤에오는 모든 메모리 명령들이 해당 명령 위로 재배치 되는 것을 금지한다.(release와 반대) 
+	 기억하기 쉽게 생각하면 기존의 relaxed의 속성을 release잃어 아래로는 chage불가, acquire얻어 아래부터 change 가능.
+4.	memory_order_acq_rel은 acquire과 release를 모두 수행하는 것으로, 읽기와 쓰기를 모두 수행하는 fetch_add와 같은 함수에서 사용된다.
+	memory_order_seq_cst는 메모리 명령의 순차적 일관성(sequential consistency)를 보장해준다. 즉, 메모리 명령 재배치도 없고, 모든 쓰레드에서 모든 시점에 동일한 값을 관찰할 수 있는, CPU가 그대로 작동하는 방식이다. 
+	 하지만 멀티 코어 시스템에서 memory_order_seq_cst는 꽤 비싼 연산이다. AMD의 x86 CPU의 경우 거의 sequential consistency가 보장되어 큰 차이가 없지만 ARM계열의 CPU는 consumes a lot of CPU's synchronizing cost for vouching sequential consistancy. 
+	고로 꼭 필요한 경우에만 memory_order_seq_cst를 사용하기로 하자(사실 atomic객체의 default setting 이 memory_order_seq_cst임 쿠쿠루삥빵뽕)
+5.	허용된 memory_order는 쓰기, 읽기, 읽고수정하고쓰기 마다 나뉘어 있는데, 대충 정리하면 default setting인 seq_cst보다 값싼 명령을 사용하여 프로그램의 효율을 높일 수 있다! 
 */ 
