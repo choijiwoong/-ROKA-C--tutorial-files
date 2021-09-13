@@ -1,4 +1,7 @@
 #include <iostream>
+#include <string>
+#include <map>
+#include <vector>
 
 /*0 compiler decode everything (seems like definition of function) to definition of function
 class A{
@@ -39,7 +42,40 @@ int main(){
 	func();
 }*/
 
-//2
+/*2 initializer list
+class A{
+	public:
+		A(std::initializer_list<int> l){
+			for(auto itr=l.begin(); itr!=l.end(); ++itr)
+				std::cout<<*itr<<std::endl;
+		}
+};
+int main(){ A a={1,2,3,4,5}; }//if we use (), initializer_list is not created.
+*/
+
+//2 simple definition of container by using initializer_list
+template <typename T>
+void print_vec(const std::vector<T>& vec){
+	std::cout<<"[";
+	for(const auto& e: vec)
+		std::cout<<e<<" ";
+	std::cout<<"]"<<std::endl;
+}
+
+template<typename K, typename V>
+void print_map(const std::map<K, V>& m){
+	for(const auto& kv: m)
+		std::cout<<"kv.first"<<" : "<<kv.second<<std::endl;
+}
+
+int main(){
+	std::vector<int> v={1,2,3,4,5};
+	print_vec(v);
+	
+	std::cout<<"------------------------"<<std::endl;
+	std::map<std::string, int> m={ {"abc", 1}, {"hi", 3}, {"hello", 5}, {"c++", 2}, {"java", 6} };
+	print_map(m);
+}
 
 
 
@@ -57,5 +93,7 @@ int main(){
 	또한 {}를 사용하면 함수 리턴시에 굳이 생성하는 객체의 타입을 다시 명시하지 않아도 된다. 
 	
 [2.	초기화자 리스트(Initializer list)]
-1.	 
+1.	C++11에서 배열을 정의할 때 int arr[]={1,2,3,4};했던것과 같이 vector<int> v={1,2,3,4};가 가능해졌다. 
+2.	initializer_list를 이용하여 컨테이너들을 간단하게 정의할 수 있다.
+ 
 */
