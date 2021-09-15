@@ -196,6 +196,15 @@ void show_value(T t){
 	else
 		std::cout<<"It's not pointer"<<t<<std::endl;//can be ignore!
 } 
+//it can use like it too
+template <typename T>
+void show_value2(T t){
+	if constexpr(std::is_pointer_v<T>)//little more simple
+		std::cout<<"It's pointer : "<<*t<<std::endl;
+	else
+		std::cout<<"It's not pointer : "<<t<<std::endl;
+}
+
 int main(){
 	int x=3;
 	show_value(x);
@@ -203,6 +212,7 @@ int main(){
 	int* p=&x;
 	show_value(p);
 }
+
 
 
 
@@ -270,4 +280,17 @@ int main(){
 	type_traits의 std::is_pointer는 전달한 인자 T가 포인터라면 value가 True가 되고, 아니면 false가 되는 템플릿 메타 함수이다.  
 	하지만 타입에 따라 템플릿 인스턴스화 과정에서 코드 자체가 컴파일 될 수 없는 오류가 발생하게 된다.
 3.	이러한 문제를 해결하기 위해 if constexpr을 도입할 수 있다. 
+4.	std::is_pointer<T>::value말고 std::is_pointer_V<T>만 써도 되는데 이는 아래와 같이 정의되어 있다.
+	template <class T>
+	inline constexpr bool is_pointer_v=is_poointer<T>::value; 
+
+[7.	C++ 20]
+1.	C++ 20은 아직 나오지 않았지만, 추가될 기능들 중에 constexpr vector와 constexpr string이 있다.
+	이를 위해 constexpr new와 constexpr소멸자가 추가되었다고 하니 보다 많이 사용할 수 있을 것이다.
+	아예 default로 함수르 그냥 constexpr로 만들어보자는 얘기도 나온다. 
+	
+[8.	마무리지으며]
+1.	constexpr을 통해 컴파일 타임 상수인 객체를 선언할 수 있다. const는 컴파일 타임에 상수일 필요가 없지만, constexpr로 정의된 함수는
+	인자로 리터럴을 전달하였을때 컴파일 타임 상수를 리턴한다.
+2.	constexpr생성자를 가진 클래스를 constrxpr 객체를 생성할 수 있다. 
 */ 
