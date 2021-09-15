@@ -1,6 +1,5 @@
 #include <iostream>
-
-//위와 같은 작업들을 하지 않는 이상 constexpr 키워드를 함수에 붙일 수 있게 됩니다. 만일 조건을 만족하지 않는 작업을 함수 내에서 하게 된다면 컴파일 타임 오류가 발생하게 됩니다. 예를 들어서
+#include <type_traits>//6
 
 /*1 use of constexpr
 template <int N>
@@ -93,7 +92,118 @@ int main(){
 	std::cout<<a()<<std::endl;
 }*/
 
-//3 compile time error occur if we don't keep exception condition of constexpr function
+/*3 compile time error occur if we don't keep exception condition of constexpr function
+int not_constexpr(int x){ return x++; }
+constexpr int Factorial(int n){
+	int total=1;
+	for(int i=1; i<=n; i++)
+		total*=i;
+	
+	not_constexpr(total);//error occur "call to non_constexpr function"
+	return total;
+}*/
+
+/*3 constexpr with normal argument not compile time const variable
+constexpr int Factorial(int n){
+	int total=1;
+	for(int i=1; i<=n; i++)
+		total*=i;
+	return total;
+}//error my compiler,,only
+int main(){
+	int num;
+	std::cin>>num;//num is not compile time const!
+	std::cout<<Factorial(num)<<std::endl;//constexpr int function can get compile time const successfully.
+}*/
+
+/*5 using of constexpr as template argument with constexpr Constructor, function
+class Vector{
+	public:
+		constexpr Vector(int x, int y) :x_(x), y_(y){}//it gets two int as argument that is literal. It's correct using
+		
+		constexpr int x() const{return x_;}//accessing member variable is set to constexpr. then, these function like x() & y() can be used in constexpr function.
+		constexpr int y() const{return y_;}
+	
+	private:
+		int x_;
+		int y_;
+};
+
+constexpr Vector AddVec(const Vector& v1, const Vector& v2){
+	return {v1.x()+v2.x(), v1.y()+ v2.y()};
+}
+
+template <int N>//work in compile time
+struct A{
+	int operator()(){return N;}
+};
+
+int main(){
+	constexpr Vector v1{1,2};//constexpr Vector object
+	constexpr Vector v2{2,3};
+	
+	//v1.x() can be used by template argument because v1 is constexpr, v1's x() is constexpr function.
+	A<v1.x()> a;
+	std::cout<<a()<<std::endl;//Good!
+	
+	//AddVec(v1, v2).x() can be used by template argument because AddVec function is constexpr and it return Vector object that's .x() is constexpr.
+	A<AddVec(v1, v2).x()> b;
+	std::cout<<b()<<std::endl;//Good
+}*/
+
+/*6 function changing by argument's type by using template
+template <typename T>
+void show_value(T t){
+	std::cout<<"it's not pointer : "<<t<<std::endl;
+}
+
+template <typename T>
+void show_value(T* t){
+	std::cout<<"it's pointer : "<<*t<<std::endl;
+}
+
+int main(){
+	int x=3;
+	show_value(x);
+	
+	int* p=&x;
+	show_value(p);
+}*/
+
+
+/*6 function changing by argument's type by using std::is_pointer in type_traits
+template <typename T>
+void show_value(T t){
+	if(std::is_pointer<T>::value)
+		std::cout<<"It's pointer"<<*t<<std::endl;//Error occur in template instantiation, because if T is int, this code uses *t to int, so compile error is occur.
+	else
+		std::cout<<"It's not pointer"<<t<<std::endl;
+}
+
+int main(){
+	int x=3;
+	show_value(x);
+	
+	int* p=&x;
+	show_value(p);
+}*/
+
+//6 solution by using if constexpr
+template <typename T>
+void show_value(T t){
+	if constexpr (std::is_pointer<T>::value)//error occur in my compiler...only
+		std::cout<"It's pointer"<<*t<<std::endl;//can be ignore!
+	else
+		std::cout<<"It's not pointer"<<t<<std::endl;//can be ignore!
+} 
+int main(){
+	int x=3;
+	show_value(x);
+	
+	int* p=&x;
+	show_value(p);
+}
+
 
 
 
@@ -133,4 +243,31 @@ int main(){
 	-초기화 되지 않는 변수의 정의
 	-실행 중간에 constexpr이 아닌 함수를 호출하게 됨
 	만약 위와 같은 작업을 하면 컴파일 타임 오류가 발생한다. 
+4.	constexpr이라고 컴파일 타임 상수들만 인자로 받을 수 있는 것은 아니고 일반 함수처럼 동작할 수도 있다. 
+	고로 constexpr을 함수에 붙일 수 있다면 붙여주는 것이 좋은게, constexpr처럼 동작을 못하면 일반 함수처럼 동작할 것이고, 컴파일 타임 상수를 생성할 수 있다면 보다 간단히 이용할 수 있기 때문이다.
+	
+[4.	리터럴 타입?]
+1.	constexpr은 함수 내부에서 불가능한 작업으로 리터럴(Literal)타입이 아닌 변수의 정의라고 하였는데, C++에서는 리터럴을
+	-void형
+	-스탈라 타입(char, int, bool, long, float, double) 등
+	-레퍼런스 타입
+	-아래 조건을 만족하는 타입
+		ㄴ디폴트 소멸자를 가지고 다음 중 하나를 만족하는 타입
+			-람다 함수
+			-Arggregate타입(사용자 정의 생성자, 소멸자가 없으며 모든 데이터 멤버들이 public) pair과 같은 애들 
+			-constepxr생성자를 가지며 복사 및 이동 생성자가 없음 
+2.	위의 애들을 리터럴 타입이라고 의미하며, 해당 객체들만이 constexpr로 선언되던지 constexpr함수 내부에서 사용될 수 있다. 
+
+[5.	constexpr 생성자]
+1.	constexpr생성자의 경우 constexpr함수에 적용되는 제약조건들이 모두 적용되며, constexpr생성자의 인자들은 반드시 리터럴 타입이어야만 하고, 해당 클래스는 다른 클래스를 가상 상속 받을 수 없다.
+2.	constepxr객체의 constexpr멤버 함수만이 constexpr을 준다.
+
+[6.	if constexpr]
+1.	타입에 따라 형태가 달라지는 함수를 짜보자. like get_value function인데 인자가 포인터면 *을 리턴하고 아니면 원래의 인자를 리턴.
+	이러한 함수를 template를 이용하여 만들 순있지만, show_value함수가 정확히 어떠한 형태의 T를 요구하는지 한 눈에 파악하기 힘들고,
+	같은 함수를 위처럼 두 번 써야한다는 문제가 있다.
+2.	이러한 문제를 해결하기 위해 C++표준 라이브러리의 <type_traits>에서는 여러가지 템플릿 함수들을 제공하는데, 이들 중 해당 타입이 포인터인지 아닌지 확인하는 함수를 이용하여 구성해보도록 하자.
+	type_traits의 std::is_pointer는 전달한 인자 T가 포인터라면 value가 True가 되고, 아니면 false가 되는 템플릿 메타 함수이다.  
+	하지만 타입에 따라 템플릿 인스턴스화 과정에서 코드 자체가 컴파일 될 수 없는 오류가 발생하게 된다.
+3.	이러한 문제를 해결하기 위해 if constexpr을 도입할 수 있다. 
 */ 
