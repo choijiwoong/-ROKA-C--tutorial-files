@@ -144,7 +144,91 @@ struct A{
 int main(){ test<A>(11); }
 */
 
-//5
+/*5 enable_if
+template <bool B, class T=void>//pass condition to B. if B is calculated to true, enable_if::value's type becomes T, else if B is false, enable_if doesn't have value.
+struct enable_if;
+//we can use enable_if like it
+std::enable_if<std::is_integral<T>::value>::type;//we pass std::integral<T>::value to B.
+*/
+
+/*5 we can use enable_if like this
+template <typename T, typename=typename std::enable_if<std::is_integral<T>::value>::type>//typename= part is passing default argument to template. we dont need to write like typename U= ,because we need only that expression.
+void test(const T& t){//additional typename of std::enable_if is needed because std::enable_if<>::type is depending type.
+	std::cout<<"t : "<<t<<std::endl;
+}
+//it's same function more simple
+template <typename T, typename=std::enable_if_t<std::is_integral_v<T>>>
+void test2(const T& t){
+	std::cout<<"t : "<<t<<std::endl;
+}
+
+struct A{};
+
+int main(){
+	test(1);//int
+	test(false);//bool
+	test('c');//char
+	
+	test(A{});//compile error 'no type named 'type'
+}
+//it's defined like it
+template <bool B, class T=void>
+using enable_if_t=typename enable_if<B, T>::type;//C++14
+
+template <class T>
+inline constexpr bool is_integral_v=is_integral<T>::value;//C++17
+*/
+
+/*5 structure of enable_if
+template <bool B, class T=void>//if B is false, ignore order of overloading because std::enable_if<B>::value is not correct grammer.
+struct enable_if{};
+
+template <class T>
+struct enable_if<true, T>{//templae specialization to true
+	typedef T type;//if B is true, define type. so only std::enable_if<B>::value stay to order of overloading
+};*/
+
+/*5. another example of enable_if
+template <typename T>
+class vector{
+	public:
+		vector(size_t num, const T& element){
+			std::cout<<"make"<<element<<"amount of "<<num<<std::endl;
+		}
+		
+		template <typename Iterator>
+		vector(Iterator start, Iterator end){
+			std::cout<<"Call constructor by iterator"<<std::endl;
+		}
+};
+
+int main(){
+	vector<int> v(10, 3);//we want to make 10 vector has 3, but iterator constructor is called. because num's type is size_t.
+	//size_t means signed int and v's 10 is unsigned int. compiler can cast it to signed int if more good function to overloading is not existed.
+	//but Iterator's constructor is perfectly matched. so mismatch is occured.
+}
+
+//So we have to force Iterator is real Iterator not only name.
+//If is_iterator(meta function) exist, we can write like this
+template <typename Iterator, typename=std::enable_if_T<is_iterator<Iterator>::value>>
+vector(Iterator start, Iterator end){
+	std::cout<<"Call constructor by using Iterator"<<std::endl;
+}
+//if we use std::enable_if_t like it, problem can be solved.
+*/
+
+//6
+template <typename T, typename=decltype(std::declval<T>().func())>
+void test(const T& t){
+	std::cout<<"t.func() : "<<t.func()<<std::endl;
+}
+
+struct A{
+	int func() const { return 1;}
+};
+
+int main(){ test(A{}); }
+
 
 
 /*
@@ -198,6 +282,11 @@ int main(){ test<A>(11); }
 	type_traits에선 해당 작업을 손쉽게 할 수 있는 메타 함수를 하나 제공하는데, enable_if이다.
 	
 [5.	enable_if]
-1.	
-	
+1.	SFINAE를 통해서 조건에 맞지 않는 함수들을 오버로딩 후보군에서 쉽게 뺄 수 있게 도와주는 간단한 템플릿 메타 함수이다. 
+
+[6.	특정 멤버 함수가 존재하는 타입 만을 받는 함수]
+1.	enable_if를 비롯한 여러 메타 함수로 할 수 있었던 것은 이러이러한 조건을 만족하는 타입을 인자로 받는 함수를 만들고 싶다 였다.
+	만약 이러이러한 멤버 함수가 있는 타입을 인자로 받는 함수를 만들고 싶다이면 어떻게 해야할까?
+	 
+	 
 */
