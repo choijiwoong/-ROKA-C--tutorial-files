@@ -1,7 +1,5 @@
 #include <iostream>
 
-//enable_if 는 SFINAE 를 통해서 조건에 맞지 않는 함수들을 오버로딩 후보군에서 쉽게 뺄 수 있게 도와주는 간단한 템플릿 메타 함수 입니다. enable_if 는 다음과 같이 정의되어 있습니다.
-
 /*1 In libc++, basic_ostream's operator<<
 template <class _CharT, class _Traits, class _yp, class _dp>
 typename enable_if<is_same<void, typename __void_t<decltype((declval<basic_ostream<_CharT, _Traits>&>()<<declval<typename unique_ptr<_Yp, _Dp>::pointer>()))>::type>::value, basic_ostream<_CharT, _Traits>&>::type operator<<(basic_ostream<_CharT, _Traits>& __os, unique_ptr<_Yp, _Dp> const& __p){ 
@@ -217,18 +215,140 @@ vector(Iterator start, Iterator end){
 //if we use std::enable_if_t like it, problem can be solved.
 */
 
-//6
-template <typename T, typename=decltype(std::declval<T>().func())>
+/*6 problem occur that compiler can't handle conditionf class B doesn't have func() member function
+template <typename T, typename=decltype(std::declval<T>().func())>//can't handle class doesn't have func(). compile error occur
 void test(const T& t){
 	std::cout<<"t.func() : "<<t.func()<<std::endl;
 }
 
-struct A{
+struct A{//have func()
 	int func() const { return 1;}
 };
+struct B {};//doesn't have func()
 
-int main(){ test(A{}); }
+int main(){ 
+	test(A{}); 
+	//test(B{});//error occur because B doesn't have func() as member function.
+	//we can force return type of func() by using enable_if
+	
+	test1(A{});
+	test1(B{});
+}*/
 
+/*6 enable_if can solve that problem
+template <typename T, typename=std::enable_if_t<std::is_integral_v<decltype(std::declval<T>().fun())>>>//is_integral_v can use in C++17..
+void test(const T& t){
+	std::cout<<"t.func() : "<<t.func()<<std::endl;
+}
+
+struct A{ int func() const { return 1; }; };
+struct B{ char func() const {return 'a'; };};//not int type. compile error occur because of std::is_integral_v with enable_if_t
+
+int main(){
+	test(A{});
+	test(B{});
+}*/
+
+
+#include <set>
+#include <vector>
+/*6 how about check many fuction not only func? Let's suppose print function that prints all elements of container. we have to check definition of begin & end.
+template <typename Cont, typename=decltype(std::declval<Cont>().begin()), typename=decltype(std::declval<Cont>().end())>//std::ceclval can check object without calling constructor. decltype is keyword that return real type of argument. if Cont's begin is not exist, then decltype call error, then typename=part's occur error too. it's compile error.
+void print(const Cont& container){
+	std::cout<<"[";
+	for (auto it=container.begin(); it!=container.end(); ++it)
+		std::cout<<*it<<" ";
+	std::cout<<"]\n";
+}
+
+int main(){
+	std::vector<int> v={1,2,3,4,5};
+	print(v);
+	
+	std::set<char> s={'a','b','c','u'};
+	print(s);
+	//well work!
+}*/
+
+/*6 Let's see what's happening if begin & end is not defined in class.
+template <typename Const, typename=decltype(std::declval<Cont>().begin()), typename=secltype(std::declval<Cont>().end())>
+void print(const Cont& container){
+	std::cout<<"[ ";
+	for (auto it=container.begin(); it!=container.end(); ++it)
+		std::cout<<*it<<" ";
+	std::cout<<"]\n";
+}
+
+struct Bad{
+	void begin();
+};
+//it's really good choice that i choose computer engineering...it's feeled little hard, but it's so interesting and fun soon to me:) such like intelligentic satisfying
+//When i feel some confusing, i feel happy everythings of me not only recovering.
+int main(){ print(Bad{}); }//error occur! because Bad doesn't have end() so Bad{} cannot be overloaded.
+//it's seem like good to us, but one problem is staying. that's too many template argument 'typename='
+//In aspect of other people, he can't find easily how many template argument in Print function. correctly, which argument are gotten?
+//So for solving this readability problem, meta function that is 'void_t' is added int C++17
+*/
+
+/*7 user pass one more argument to template argument by mistake in code that is used void_t
+template <typename Cont,
+		  typename = std::void_t<decltype(std::declval<Cont>().begin()),//std::void_t is in C++17!
+		  						 decltype(std::declval<Cont>().end())>>
+void print(const Cont& container){
+	std::cout<<"[ ";
+	for (auto it=container.begin(); it!=container.end(); ++it)
+		std::cout<<*it<<" ";
+	std::cout<<"]\n";
+}
+
+struct Bad {};
+
+int main(){
+	print<Bad, void>(Bad{});//one more template argument not only container. compile error occur! because print is not removed in order of overloading.
+	//user pass void 
+}*/
+
+//8. review fucking template
+template <class _CharT, class _Traits, class _Yp, class _Dp>
+typename enable_if<
+	is_same<void, typename __void_t<decltype(declval<basic_ostream<_CharT, _Traits>()<<declval<
+		typename unique_ptr<_Yp, _Dp>::pointer>()))>::type>::value, 
+			basic_ostream<_CharT, _Traits>&>::type operator<<(basic_ostream<_CharT, _Traits>& __os, 
+				unique_ptr<_Yp, _Dp> const& __P){
+	return __os<<__p.get();
+}
+//this function is in stdard library of C++ so it muse be made safely
+//so it checks type by return type of function not by default argument of template
+//Let's see it partly.
+
+__void_t<decltype((declval<basic_ostream<_CharT, _Traits>&>()<<declval<typename unique_ptr<_Yp, _Dp>::pointer>()))::type//__void_t is same to std::void_t
+//it's checking this expression is correct gramatically.
+declval<basic_ostream<_CharT, _Traits>&>()<<declval<typename unique_ptr<_Yp, _Dp>::pointer>()
+//Can besic_ostream's operator<< print pointer type object of unique_ptr? 
+//if it's possible, __void_t will be calculated to void, else if it's impossible, this operator<< will be removed in order of overloading.
+
+//then, return part of this function 
+typename enable_if<
+	is_same<void, typename __void_t<decltype((declval<basic_ostream<_CharT, _Traits>&>()<<declval<
+		typename unique_ptr<_Yp, _Dp>::pointer>()))::type>::value, 
+			basic_ostream<_CharT, _Traits>&>::type
+//will be instantiated like that.
+typename enable_if<is_same<void, void>::value, basic_ostream<_CharT, _Traits>&>::type
+//is_same is meta function that is defined in type_traits. if two arguments in is_same is true, value set true, else value set false.
+//now, argument's type is same, so it's value set true.
+
+//then, this expression
+typename enable_if<true, basic_ostream<_CharT, _Traits>&>::type operator<<(
+	basic_ostream<_CharT, _Traits>& __os, unique_ptr<_Yp, _Dp> const& __p){
+		return __os<<__p.get();
+}
+//is changed by enable_if like that
+basic_ostream<_CharT, _Traits>& operator<<(basic_ostream<_CharT, _Traits>& __os, unique_ptr<_Yp, _Dp> const& __p){
+	return __os<<__p.get();
+}
+
+//this code is long, but it's same to examples we learned.
+//example's return type is coid, operator<<'s return type is basic_ostream<_CharT, _Traits>&. it's just.
 
 
 /*
@@ -287,6 +407,42 @@ int main(){ test(A{}); }
 [6.	특정 멤버 함수가 존재하는 타입 만을 받는 함수]
 1.	enable_if를 비롯한 여러 메타 함수로 할 수 있었던 것은 이러이러한 조건을 만족하는 타입을 인자로 받는 함수를 만들고 싶다 였다.
 	만약 이러이러한 멤버 함수가 있는 타입을 인자로 받는 함수를 만들고 싶다이면 어떻게 해야할까?
-	 
-	 
+
+[7.	void_t]
+1.	definition of void_t is very simple like that
+
+	template <class...>
+	using void_t=void;
+	
+	By using variadic template, we can pass random types to void_t as template argument, anyway void_t is same to void.
+	 So if one of void_t's arguments occur error, it will be removed in overloading order by SFINAE.
+	so we can develop readability of upper function by using void_t like that.
+	
+	template <typename Cont, 
+			  typename = std::void_t<decltype(std::declval<Cont>().begin()),
+			  						 decltype(std::declval<Cont>().end())>>
+			  						 
+	but this code is not perfect if user pass one more argument to template argument by mistake
+	So checking place of Cont's type are passed void. so compiler doesn't use default argument of template argument. so compiler skips type check.
+	
+	To solve this delema, we have to design well worked-function even if user do mistake.
+	So we will seperate type checking part to another place like that.
+	
+	template <typename Cont>
+	std::void_t<decltype(std::declval<Cont>().begin()), decltype(std::declval<Cont>().end())> print(const Cont& container){
+		//Do something...
+	}
+	
+	type checking part is moved to return type. return type is also applied SFINAE, so it can make same effect with safety of user's mistake.
+	
+[8.	공포의 템플릿 다시 살펴보기]
+1.	상당히 복잡해 보이지만, 오늘 배운 예제와의 유일한 차이점이라고는 operator<<의 리턴타입이 basic_ostream<_CharT, _Traits>&라는 것 뿐이다.
+
+[9.	마무리하며]
+1.	type_traits에 정의되어 있는 메타 함수들은 무엇이 있는지
+2.	C++에서 템플릿 인자 치환 시 문법적으로 올바르지 않은 코드가 생성될 경우, 컴파일 오류를 발생시키는 것이 아니라 오버로딩 후보군에서 제외한다.
+	이때, 컴파일러가 모든 코드를 치환하는 것이 아니라 함수의 타입, 인자 정의 부분만 확인하는데, 이러한 규칙을 SFINAE라고 한다.
+3.	enable_if를 통하여 원하는 타입만 받는 함수를 작성할 수 있다.
+4.	void_t를 통하여 원하는 타입만 받는 함수를 가독성있게 작성할 수 있다. 
+	
 */
