@@ -43,7 +43,7 @@ namespace MyArray{
 					//DESTRUCTOR OF ITERATOR
 					~Iterator(){ delete[] location; }
 					
-					//OPERATOR++ OVERLOADING
+					//OPERATOR++ OVERLOADING PREFIX
 					Iterator& operator++(){
 						if(location[0]>=arr->size[0])//reference by index out of range
 							return (*this);
@@ -59,40 +59,40 @@ namespace MyArray{
 							} else{
 								carry=false;
 							}
-						} while(i>=0&&carry);//i<0&&carry is true==reference by index out of range
+						} while(i>=0&&carry);//loof condition. if not==reference by index out of range
 						
 						return (*this);
 					}
-					//OPERATOR= OVERLOADING
-					Iterator* operator=(const Iterator& itr){
-						arr=itr.arr;
-						location=new int[itrarr->dim];
+					Iterator operator++(int){//POSTFIX
+						Iterator itr(*this);
+						++(*this);//first ++ this
+						return itr;//return copy version that is not ++ed
+					}
+					//OPERATOR= OVERLOADING_ASSIGN
+					Iterator& operator=(const Iterator& itr){//assgin iterator by iterator
+						arr=itr.arr;//similar to copy constructor
+						location=new int[itr.arr->dim];
 						for(int i=0; i!=arr->dim; i++)
 							location[i]=itr.location[i];
 						
 						return (*this);
 					}
-					Iterator operator++(int){
-						Iterator itr(*this);
-						++(*this);
-						return itr;
-					}
-					bool operator!=(const Iterator* itr){
-						if(itr.arr->dim!=arr->dim)
+					//OPERATOR!= OVERLOADING_CONDITION
+					bool operator!=(const Iterator& itr){
+						if(itr.arr->dim!=arr->dim)//dimention check
 							return true;
 							
 						for(int i=0; i!=arr->dim; i++)
-							if(itr.location[i]!=location[i])
+							if(itr.location[i]!=location[i])//location check
 								return true;
 						
 						return false;
 					}
-					Int operator*();//********食奄亀でででででででででででででででででででででででで 
-					
+					Int operator*();//
 			};
 			//END ITERATOR CLASS
 			
-			frient Iterator;
+			friend Iterator;//for use Iterator in Array
 			//CONSTRUCTOR OF ARRAY
 			Array(int dim, int* array_size):dim(dim){//dim==dimention, array_size==size in each dimention. Let's set!
 				size=new int[dim];//array(that saves size) is allocated
@@ -159,19 +159,36 @@ namespace MyArray{
 				delete[] static_cast<Address *>(current->next);//in Addres layer
 			}
 			
-			
 			//OPERATOR[] OVERLOADING
-			Int operator[](cosnt int index);//after definition of Array & Int class. because we will use real information of Int.
+			Int operator[](const int index);//after definition of Array & Int class. because we will use real information of Int.
 			//DESTRUCTOR OF ARRAY
 			~Array(){
 				delete_address(top);
 				delete[] size;
 			}
 			
-			//?????????採斗っっ斗っっっっっっっっっっっっっっっっっっっっっっっっっっっ 
-			Iterator begin(){
-				int* arr=new int[dim];
+			//ARRAY.BEGIN() BY ITERATOR
+			Iterator begin(){//for use operator= overloding
+				int* arr=new int[dim];//set array with dimention
+				for(int i=0; i!=dim; i++)
+					arr[i]=0;//initialization to ZERO
 				
+				Iterator temp(this, arr);//make Iterator (Array class, array as storage)
+				delete[] arr;
+				
+				return temp;//return iterator
+			}
+			//ARRAY.END() BY ITERATOR
+			Iterator end(){//for use operator != overloading
+				int* arr=new int[dim];
+				arr[0]=size[0];//for expression of oversize index
+				for(int i=1; i<dim; i++)
+					arr[i]=0;
+					
+				Iterator temp(this, arr);
+				delete[] arr;
+				
+				return temp;
 			}
 		};//END ARRAY CLASS
 			
@@ -196,7 +213,7 @@ namespace MyArray{
 					}
 				}
 				//COPY CONSTRUCTOR OF INT
-				Int(cosnt Int& i):data(i.data), level(i.level), array(o.array){}
+				Int(const Int& i):data(i.data), level(i.level), array(i.array){}
 				//TYPE CONVERT OVERLOADING FOR WRAPPER OF INT
 				operator int(){
 					if(data)//if data is exist
@@ -208,27 +225,54 @@ namespace MyArray{
 				Int& operator=(const int& a){
 					if(data)
 						*static_cast<int *>(data)=a;//???????????
-					return this;
+					return *this;
 				}
 				Int operator[](const int index){
 					if(!data)//data is empty
 						return 0;
+					return Int(index, level+1, data, array);
 				}
 		};
 		//END INT CLASS
 		
 		//Array's []OVERLOADING BY INT
 		Int Array::operator[](const int index){
-			if(!data) //if data is empty
-				return 0;
-					
 			return Int(index, 1, static_cast<void *>(top), this);
 		}
-			
-			
-			
-	};
-} 
+		//ITERATOR's OPERATOR* OVERLOADING FOR ACCESS TO REAL DATA
+		Int Array::Iterator::operator*(){
+			Int start=arr->operator[](location[0]);//int setting to first element of location
+			for(int i=1; i<=arr->dim-1; i++)
+				start=start.operator[](location[i]);//next element inserting by Int's operator[]
+			return start;//return start that has information of index.
+		}	
+}//END NAMESPACE
+
+
+int main() {
+  int size[] = {2, 3, 4};
+  MyArray::Array arr(3, size);
+
+  MyArray::Array::Iterator itr = arr.begin();//make iterator
+  for (int i = 0; itr != arr.end(); itr++, i++) (*itr) = i;//save value
+  for (itr = arr.begin(); itr != arr.end(); itr++)
+    std::cout << *itr << std::endl;//print. Int has type convert operator
+
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 4; k++) {
+        arr[i][j][k] = (i + 1) * (j + 1) * (k + 1) + arr[i][j][k];//access by []
+      }
+    }
+  }
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 4; k++) {
+        std::cout << i << " " << j << " " << k << " " << arr[i][j][k]<< std::endl;//print by []
+      }
+    }
+  }
+}
 
 /*
 1.	鎧採旋生稽 嬢胸惟 拙疑馬澗走 因鯵馬壱 粛走 省陥檎 適掘什 照拭 適掘什研 持失馬檎 吉陥. 
