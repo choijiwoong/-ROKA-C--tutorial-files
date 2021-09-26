@@ -1,7 +1,6 @@
 #ifdef UTILS_H
 #define UTILS_H
 
-#include <string>
 
 namespace MyExcel{//tools: Vector, Stack, NumStack
 	class Vector{
@@ -60,22 +59,62 @@ namespace MyExcel{//tools: Vector, Stack, NumStack
 			bool is_empty();
 			~NumStack();
 	};
-}
-
-namespace MyExcel{
+	
+	
+	
 	class Cell{
 		protected:
 			int x, y;//location information of cell
 			Table* table;//Cell information in which table?
-			
-			string data;//storage
 		
 		public:
-			virtual std::string stringify();
-			virtual int to_numeric();
+			virtual std::string stringify()=0;
+			virtual int to_numeric()=0;
 			
-			Cell(std::string data, int x, int y, Table* table);
+			Cell(int x, int y, Table* table);
 	};
+	class StringCell: public Cell{
+		private:
+			std::string data;
+		
+		public:
+			std::string stringify();
+			int to_numeric();
+			StringCell(std::string data, int x, int y, Table* t);
+	};
+	class NumberCell: public Cell{
+		private:
+			int data;
+		
+		public:
+			std::string stringify();
+			int to_numeric();
+			NumberCell(int data, int x, int y, Table* t);
+	};
+	class DateCell: public Cell{//only yyyy-mm-dd
+		private:
+			time_t data;
+		public:
+			std::string stringify();
+			int to_numeric();
+			DateCell(std::string s, int x, int y, Table* t);
+	};
+	class ExprCell: public Cell{
+		private:
+			std::string data;
+			std::string* parsed_expr;
+			Vector exp_vec;//for save postfix-notation expression after parse_expression()
+		
+			//tools for to_numeric(infix notation->postfix notation)
+			int precedence(char c);//convert precedence of operator
+			void parse_expression();//infix-notation to postfix-notation in exp_vec
+		
+		public:
+			ExprCell(std::string data, int x, int y, Table* t);
+			std::string stringify();
+			int to_numeric();//calculate postfix-notation
+	};
+	
 	
 	class Table{//abstract class
 		protected:
@@ -102,5 +141,32 @@ namespace MyExcel{
 			TxtTable(int row, int col);
 			std::string print_table();//print as table
 	};
-}
+	
+	
+	class HtmlTable : public Table {
+ 		public:
+  			HtmlTable(int row, int col);
+  			string print_table();
+	};
+
+	class CSVTable : public Table {
+ 		public:	
+  			CSVTable(int row, int col);
+  			string print_table();
+	};
+	
+	
+	
+	
+	class Excel{//TUI
+		private:
+			Table* current_table;//for which table now
+		
+		public:
+			Excel(int max_row, int max_col, int choice);
+			
+			int parse_user_input(std::string s);//work
+			void command_line();
+	};
+}//END NAMESPACE
 #endif
