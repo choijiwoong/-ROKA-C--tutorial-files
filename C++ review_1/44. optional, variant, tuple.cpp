@@ -3,7 +3,6 @@
 #include <string>
 #include <utility>
 
-//tuple부터 
 
 /*use of optional in map
 std::optional<std::string> GetValueFromMap(const std::map<int, std::string>& m, int key){
@@ -62,7 +61,24 @@ int main(){
 	std::cout<<v.index()<<std::endl;//type index
 	std::get<A>(v).a();//==std::get<0>(v).a();
 }*/
- 
+
+#include <tuple>
+//tuple(set with different types) with structured binding 
+std::tuple<int, std::string, bool> GetStudent(int id){
+	if(id==0)
+		return std::make_tuple(30, "john", true);
+	else
+		return std::make_tuple(28, "mary", false);
+}
+
+int main(){
+	auto student=GetStudent(1);
+	auto [age, name, is_male]=student;//structured binding!
+	
+	std::cout<<"name: "<<name<<std::endl;
+	std::cout<<"age: "<<age<<std::endl;
+	std::cout<<"is male?: "<<std::boolalpha<<is_male<<std::endl;
+}
 
 /*
 1.	map에 주어진 키에 대응되는 값이 있는지 확인하는 함수를 짤때, 단순하게 짜면 대응되는 값이 없다면 std::string();을 리턴하는 방식으로 만들 수 있다.
@@ -101,5 +117,7 @@ int main(){
 	};
 	
 	std::variant<std::monostate, A, B> v;
-9.	
+9.	std::tuple객체를 리턴하는 함수에 대해 각 항목을 받으려면 auto로 해당 객체를 받아 각 항목을 변수에 저장했어야 하는데,	
+	C++17부터 Structured binding이라는 테크닉을 이용하여 보다 쉽게 tuple의 값들을 받을 수 있다. 다만 반드시 모든 원소들을 받아야 한다. 
+	structured binding은 tuple외에도 pair이나 구조체의 데이터 필드들을 받는데도 사용할 수 있다. 
 */
