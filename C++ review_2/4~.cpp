@@ -38,51 +38,65 @@ void Geometry::PrintDistance(){
 			std::cout<<"distance of "<<i<<" & "<<j<<" : "<<GetDistance(*point_array[i], *point_array[j])<<std::endl;//input as value of pointer not pointer type
 }
 
-void Geometry::PrintNumMeets(){//평행한거 있으면 무한, 같은거 제거, 남은걸로 추리 
-	struct double_pair{//tool for PrintNumMeets
-		double first;
-		double second;
-	};
-	std::vector<double_pair> line_array;
-	line_array.reserve(num_points*(num_points-1));//not suppose same dot.
+void Geometry::PrintNumMeets(){//같은거 있으면 무한, 평행한거 제거, 남은걸로 추리
+	if(num_points<=2){//no point
+		printf("NumMeets: 0!");
+		return;
+	}
 	
-	double_pair par;//first is degree of straight, second is point that meets with y
-	for(int i=0; i<num_points; i++){
-		for(int j=i+1; j<num_points; j++){
-			par.first=(point_array[i]->Get_y()-point_array[j]->Get_y()) / (point_array[i]->Get_x()-point_array[j]->Get_x());
-			par.second=point_array[i]->Get_y()-point_array[i]->Get_x()*par.first;
-			line_array.push_back(par);
+	//calculate possible graph line & save
+	std::vector<std::pair<double, double>> line;
+	line.reserve(num_points*(num_points-1));
+	double x1, y1, x2, y2, a, b;
+	for(int i=0; i<num_points-1; i++){//default value of num_points is ZERO
+		for(int j=i+1; j<num_points-1; j++){
+			x1=point_array[i]->Get_x();
+			y1=point_array[i]->Get_y();
+			x2=point_array[j]->Get_x();
+			y2=point_array[j]->Get_y();
+			a=(y2-y1)/(x2-x1);
+			b=y1-x1*a;
+			
+			line.push_back(std::make_pair(a, b));
+			std::cout<<"graph [y="<<a<<"x+"<<b<<"] is added by ("<<x1<<", "<<y1<<"), ("<<x2<<", "<<y2<<")"<<std::endl;
 		}
 	}
-	//save all line to vector
-	
-	
-	for(int i=0; i<line_array.size(); i++){
-		for(int j=i+1; j<line_array.size(); j++){
-			if(line_array[i].first==line_array[j].first && line_array[i].second==line_array[j].second){//same
-				std::cout<<"infinite!"<<std::endl;
+
+	//if same graph is exist, it makes many dot & remove parallel
+	for(std::vector<std::pair<double, double>>::iterator itr=line.begin(); itr!=line.end(); itr++){
+		for(std::vector<std::pair<double, double>>::iterator itr2=itr+1; itr2!=line.end(); itr2++){
+			if(itr->first==itr2->first && itr->second==itr2->second){//same graph
+				std::cout<<"NumMeets: infinite!"<<std::endl;
 				return;
-			}
-			else if(line_array[i].first==line_array[j].first){//same degree
-				line_array.erase(line_array.begin()+j);//delete
+			} else if(itr->first==itr2->first && itr->second!=itr2->second){//parallel
+				line.erase(itr2);//not iterator error?
+				itr=line.begin();//solve!
+				itr2=line.begin()+1;
 			}
 		}
 	}
 	
-	
-	if(line_array.size()==2)
-		std::cout<<"NumMeets: 1!"<<std::endl;
-	else 
-		std::cout<<"NumMeets: "<<line_array.size()<<"!"<<std::endl;
+	std::cout<<"NumMeets: "<<line.size()<<"!"<<std::endl;
+	return;
 }
 
 int main(){
 	Geometry geo;
 	geo.AddPoint(Point(1,2));
-	geo.AddPoint(Point(2,3));
-	geo.AddPoint(Point(2,3));
+	geo.AddPoint(Point(2,4));
+	geo.AddPoint(Point(25,3));
+	geo.AddPoint(Point(22,3));
+	geo.AddPoint(Point(-1,2));
+	geo.AddPoint(Point(-2,4));
+	geo.AddPoint(Point(-25,3));
+	geo.AddPoint(Point(-22,3));
+	
 	geo.PrintPoints();
+	std::cout<<std::endl;
+	
 	geo.PrintDistance();
+	std::cout<<std::endl;
+	
 	geo.PrintNumMeets();
 }
 
