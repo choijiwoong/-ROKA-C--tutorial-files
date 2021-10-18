@@ -207,7 +207,7 @@ int search_book(char (*DB)[4][30], int *book_count){//****problem is DB[*book_co
 	
 	for(int i=0; i<*book_count; i++){
 		if(compare_str(DB[i][0], input)){
-			printf("%s's information\n1. title: %s\n2. author: %s\n3. publisher: %s\n4. borrow: %s", input, DB[i][0], DB[i][1], DB[i][2]);
+			printf("<%s's information>\n1. title: %s\n2. author: %s\n3. publisher: %s\n4. borrow: %s", input, DB[i][0], DB[i][1], DB[i][2]);
 			return 0;
 		}
 	}
@@ -222,7 +222,7 @@ int search_author(char (*DB)[4][30], int *book_count){
 	
 	for(int i=0; i<*book_count; i++){
 		if(compare_str(DB[i][1], input)){
-			printf("%s's information\n1. title: %s\n2. author: %s\n3. publisher: %s\n4. borrow: %s", input, DB[i][0], DB[i][1], DB[i][2]);
+			printf("<%s's information>\n1. title: %s\n2. author: %s\n3. publisher: %s\n4. borrow: %s", input, DB[i][0], DB[i][1], DB[i][2]);
 			return 0;
 		}
 	}
@@ -232,12 +232,12 @@ int search_author(char (*DB)[4][30], int *book_count){
 }
 int search_publisher(char (*DB)[4][30], int *book_count){
 	char input[100];
-	printf("input publisher of book you want to search: ");
+	printf("input publisher of book you want to search: %d");
 	scanf("%s", input);
 	
 	for(int i=0; i<*book_count; i++){
 		if(compare_str(DB[i][2], input)){
-			printf("%s's information\n1. title: %s\n2. author: %s\n3. publisher: %s\n4. borrow: %s", input, DB[i][0], DB[i][1], DB[i][2]);
+			printf("<%s's information>\n1. title: %s\n2. author: %s\n3. publisher: %s\n4. borrow: %s", input, DB[i][0], DB[i][1], DB[i][2]);
 			return 0;
 		}
 	}
@@ -251,7 +251,7 @@ int borrow_book(char (*DB)[4][30], int *book_count){
 	scanf("%s", input);
 	
 	for(int i=0; i<*book_count; i++){
-		if(compare_str(DB[i][0], input) && DB[*book_count][3]==0){
+		if(compare_str(DB[i][0], input) && DB[*book_count][3][0]==0){
 			DB[*book_count][3][0]=1;
 			printf("borow success!\n", input, DB[i][0], DB[i][1], DB[i][2]);
 			return 0;
