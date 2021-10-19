@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 //psi version
 int add_book(char (*book_name)[30], char (*auth_name)[30], char (*publ_name)[30], int *borrowed, int *num_total_book);
@@ -59,9 +60,10 @@ int add_book(char (*book_name)[30], char (*auth_name)[30], char (*publ_name)[30]
 }
 
 //Func search book
+//prob4. search_book함수를 개략하여 특정한 검색어를 입력했을 때, 그 검색어를 포함하는 문자열도 검색되게 하자. 문자열 탐색 
 int search_book(char (*book_name)[30], char (*auth_name)[30], char (*publ_name)[30], int num_total_book){
 	int user_input;
-	int i;
+	int i, j, k;
 	char user_search[30];
 	
 	printf("which thing you will search with?\n");
@@ -72,26 +74,50 @@ int search_book(char (*book_name)[30], char (*auth_name)[30], char (*publ_name)[
 	
 	printf("type word will be searched: ");
 	scanf("%s", user_search);
+	const int length_user_search=strlen(user_search);
+	int length_name;
+	char buffer[30]={0,};
 	
 	printf("result of search\n");
 	if(user_input==1){
-		for(i=0; i<num_total_book; i++){
-			if(compare(book_name[i], user_search)){
-				printf("id: %d // title of book: %s // author: %s // publisher: %s\n", i, book_name[i], auth_name[i], publ_name[i]);
+		for(i=0; i<num_total_book; i++){//for all books
+			length_name=strlen(book_name[i]);//get all length of book name
+			for(j=0; j<length_name-length_user_search+1; j++){//for all char of book_name
+				for(k=j+0; k<j+length_user_search; k++){//copy content to buffer that has same length with length_user_search
+					buffer[k-j]=book_name[i][k];//copy content to buffer **book_name is 2nd array! book_name[100][30]. it's not buffer[k]=book_name[k]; little spagetti..
+				}
+				buffer[k]='\0';//express end of string
+				//printf("[check value] buffer: %s & user_search: %s & result of compare: %d\n", buffer, user_search, compare(buffer, user_search));
+				if(compare(buffer, user_search)){//compare string buffer(part of book_name) & user_search
+					printf("id: %d // title of book: %s // author: %s // publisher: %s\n", i, book_name[i], auth_name[i], publ_name[i]);
+				}
 			}
 		}
-	} else if(user_input==2){
-		for(i=0; i<num_total_book; i++){
-			if(compare(auth_name[i], user_search)){
-				printf("id: %d // title of book: %s // author: %s // publisher: %s\n", i, book_name[i], auth_name[i], publ_name[i]);
+	} else if(user_input==2){for(i=0; i<num_total_book; i++){//for all books
+			length_name=strlen(auth_name[i]);//get all length of book name
+			for(j=0; j<length_name-length_user_search+1; j++){//for all char of book_name
+				for(k=j+0; k<j+length_user_search; k++){//copy content to buffer that has same length with length_user_search
+					buffer[k-j]=auth_name[i][k];//copy content to buffer **book_name is 2nd array! book_name[100][30]. it's not buffer[k]=book_name[k]; little spagetti..
+				}
+				buffer[k]='\0';//express end of string
+				//printf("[check value] buffer: %s & user_search: %s & result of compare: %d\n", buffer, user_search, compare(buffer, user_search));
+				if(compare(buffer, user_search)){//compare string buffer(part of book_name) & user_search
+					printf("id: %d // title of book: %s // author: %s // publisher: %s\n", i, book_name[i], auth_name[i], publ_name[i]);
+				}
 			}
 		}
 	} else if(user_input==3){
-		for(i=0; i<num_total_book; i++){
-			if(compare(publ_name[i], user_search)){
-				printf("id: %d // title of book: %s // author: %s // publisher: %s\n", i, book_name[i], auth_name[i], publ_name[i]);
+		length_name=strlen(publ_name[i]);//get all length of book name
+			for(j=0; j<length_name-length_user_search+1; j++){//for all char of book_name
+				for(k=j+0; k<j+length_user_search; k++){//copy content to buffer that has same length with length_user_search
+					buffer[k-j]=publ_name[i][k];//copy content to buffer **book_name is 2nd array! book_name[100][30]. it's not buffer[k]=book_name[k]; little spagetti..
+				}
+				buffer[k]='\0';//express end of string
+				//printf("[check value] buffer: %s & user_search: %s & result of compare: %d\n", buffer, user_search, compare(buffer, user_search));
+				if(compare(buffer, user_search)){//compare string buffer(part of book_name) & user_search
+					printf("id: %d // title of book: %s // author: %s // publisher: %s\n", i, book_name[i], auth_name[i], publ_name[i]);
+				}
 			}
-		}
 	}
 	
 	return 0;
@@ -153,5 +179,5 @@ int return_book(int *borrowed){
 	-무슨 언어로 개발할 것인가
 2.	저자의 경우 3차원 배열을 사용하지 않고, book_name, auth_name, publ_name, borrowed를 사용하였다. 공간 효율적 측면에서 나보다 효율적으로 보인다. 
 	또한 add_book함수에서 borrowed를 0으로 초기화해주면서 명확히 정의해주었다. 
-3.	prob4. search_book함수를 개략하여 특정한 검색어를 입력했을 때, 그 검색어를 포함하는 문자열도 검색되게 하자. 문자열 탐색 
+3.	
 */
