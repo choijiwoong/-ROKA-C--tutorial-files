@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#define MAX 30
 
+/*prob.1 library manage program
 struct Book{
 	char name[MAX];
 	char author[MAX];
@@ -224,6 +224,101 @@ int show_all(Book *temp, int *num_library){
 		else
 			printf("possible\n");
 	}
+	
+	return 1;
+}*/
+
+//prob.2 big num: overflow
+struct BigNum{
+	int i_digit[100];//integer part
+	int d_digit[100];//decimal part
+	int i_total_digit;//num of i_digit
+	int d_total_digit;//num of d_digit
+	char sign;//+: 1, -: 0
+}typedef BigNum;
+
+BigNum set_BigNum(char *temp);
+int show_BigNum(const BigNum *temp);
+
+int main(){
+	char number1[]="-2394465465116516124.7116516511918919283124";
+	BigNum bn1=set_BigNum(number1);
+	show_BigNum(&bn1);
+	
+	char number2[]="1251321165417375.53116519191919185919851915165132484634343415";
+	BigNum bn2=set_BigNum(number2);
+	show_BigNum(&bn2);
+	
+	return 0;
+}
+
+BigNum set_BigNum(char *temp){//make char array to BigNum struct
+	BigNum result;//define BigNum struct for return
+	if(temp[0]=='-'){
+		result.sign=0;
+		temp++;//good idea!
+	} else if(temp[0]=='+'){
+		result.sign=1;
+		temp++;
+	} else{
+		result.sign=1;
+	}
+
+	int length=strlen(temp);//get array's length
+	int dot_location;//for distinguishing digit part, decimal part
+	int i;//variable for loop
+	
+	//get dot location
+	for(dot_location=0; dot_location<length; dot_location++){
+		if(temp[dot_location]=='.'){
+			break;
+		}
+	}
+	if(dot_location==length){//no dot
+		dot_location=-1;
+	}
+	
+	//get i_digit
+	for(i=0; i<dot_location; i++){
+		result.i_digit[i]=temp[i]-48;//char to num
+	}
+	if(dot_location==-1)//if no dot
+		result.i_total_digit=length;
+	else
+		result.i_total_digit=dot_location;//(count not index)
+	
+	//get d_digit
+	if(dot_location==-1){//if no dot
+		result.d_total_digit=0;
+	} else{
+		for(i=dot_location+1; i<length; i++){
+			result.d_digit[i-(dot_location+1)]=temp[i]-48;//char to num
+		}
+		result.d_total_digit=length-(dot_location+1);//real length- index
+	}
+	
+	//return BigNum
+	return result;
+}
+
+int show_BigNum(const BigNum *temp){
+	int i;
+	if(temp->sign)
+		printf("+");
+	else
+		printf("-");
+	
+	for(i=0; i<temp->i_total_digit; i++){
+		printf("%d",temp->i_digit[i]);
+	}
+	
+	printf(".");
+	
+	for(i=0; i<temp->d_total_digit; i++){
+		printf("%d", temp->d_digit[i]);
+	}
+	
+	printf("\n");
 	
 	return 1;
 }
