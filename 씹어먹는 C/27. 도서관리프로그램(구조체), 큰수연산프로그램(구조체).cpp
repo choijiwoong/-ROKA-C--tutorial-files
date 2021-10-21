@@ -12,6 +12,9 @@ struct Book{
 int register_book(Book *temp, int *num_library);
 int compare_str(char *left, char *right);
 int search_book(Book *temp, int *num_library);
+int borrow_book(Book *temp, int *num_library);
+int return_book(Book *temp, int *num_library);
+int show_all(Book *temp, int *num_library);
 
 int main(){
 	Book library[100];
@@ -34,16 +37,19 @@ int main(){
 		
 		switch(user_choice){
 			case 1:
-				register_book(&library[num_library], &num_library);
+				register_book(&library[num_library], &num_library);//pass one element
 				break;
 			case 2:
-				search_book(library, &num_library);
+				search_book(library, &num_library);//pass whole array 
 				break;
 			case 3:
+				borrow_book(library, &num_library);
 				break;
 			case 4:
+				return_book(library, &num_library);
 				break;
 			case 5:
+				show_all(library, &num_library);
 				break;
 			case 6:
 				return 0;
@@ -67,7 +73,7 @@ int register_book(Book *temp, int *num_library){
 	printf("type author of book that you want to register: ");
 	scanf("%s", temp->author);
 	printf("type publisher of book that you want to register: ");
-	scanf("%s", temp->author);
+	scanf("%s", temp->publisher);
 	temp->borrowed=0;
 	//INC num of books
 	(*num_library)++;
@@ -108,18 +114,18 @@ int search_book(Book *temp, int *num_library){
 	switch(user_choice){
 		case 1:
 			for(int i=0; i<*num_library; i++){
-				length_book_str=strlen(temp[i]->name);
+				length_book_str=strlen(temp[i].name);
 				for(int j=0; j<length_book_str-length_input+1; j++){//for get first char address that we will compare
 					for(int k=j+0; k<j+length_input; k++){//save part of temp->name to buffer for using compare_str function
-						buffer[k-j]=temp[i]->name[k];
+						buffer[k-j]=temp[i].name[k];
 					}
 					if(compare_str(buffer, user_input)){
 						printf("[book information]\n");
-						printf("1. id: %d\n2. title: %s\n3. author: %s\n4. publisher: %s\n5. borrow: ", i, temp[i]->name, temp[i]->author, temp[i]->publisher);
-						if(temp[i]->borrowed)
-							printf("possible\n");
-						else
+						printf("1. id: %d // 2. title: %s // 3. author: %s // 4. publisher: %s // 5. borrow: ", i, temp[i].name, temp[i].author, temp[i].publisher);						
+						if(temp[i].borrowed)
 							printf("impossible\n");
+						else
+							printf("possible\n");
 						return 1;
 					}
 				}
@@ -129,18 +135,18 @@ int search_book(Book *temp, int *num_library){
 			
 		case 2:
 			for(int i=0; i<*num_library; i++){
-				length_book_str=strlen(temp[i]->author);
+				length_book_str=strlen(temp[i].author);
 				for(int j=0; j<length_book_str-length_input+1; j++){//for get first char address that we will compare
 					for(int k=j+0; k<j+length_input; k++){//save part of temp->name to buffer for using compare_str function
-						buffer[k-j]=temp[i]->name[k];
+						buffer[k-j]=temp[i].author[k];
 					}
 					if(compare_str(buffer, user_input)){
 						printf("[book information]\n");
-						printf("1. id: %d\n2. title: %s\n3. author: %s\n4. publisher: %s\n5. borrow: ", i, temp[i]->name, temp[i]->author, temp[i]->publisher);
-						if(temp[i]->borrowed)
-							printf("possible\n");
-						else
+						printf("1. id: %d // 2. title: %s // 3. author: %s // 4. publisher: %s // 5. borrow: ", i, temp[i].name, temp[i].author, temp[i].publisher);						
+						if(temp[i].borrowed)
 							printf("impossible\n");
+						else
+							printf("possible\n");
 						return 1;
 					}
 				}
@@ -150,18 +156,18 @@ int search_book(Book *temp, int *num_library){
 			
 		case 3:
 			for(int i=0; i<*num_library; i++){
-				length_book_str=strlen(temp[i]->publisher);
+				length_book_str=strlen(temp[i].publisher);
 				for(int j=0; j<length_book_str-length_input+1; j++){//for get first char address that we will compare
 					for(int k=j+0; k<j+length_input; k++){//save part of temp->name to buffer for using compare_str function
-						buffer[k-j]=temp[i]->name[k];
+						buffer[k-j]=temp[i].publisher[k];
 					}
 					if(compare_str(buffer, user_input)){
 						printf("[book information]\n");
-						printf("1. id: %d\n2. title: %s\n3. author: %s\n4. publisher: %s\n5. borrow: ", i, temp[i]->name, temp[i]->author, temp[i]->publisher);
-						if(temp[i]->borrowed)
-							printf("possible\n");
-						else
+						printf("1. id: %d // 2. title: %s // 3. author: %s // 4. publisher: %s // 5. borrow: ", i, temp[i].name, temp[i].author, temp[i].publisher);
+						if(temp[i].borrowed)
 							printf("impossible\n");
+						else
+							printf("possible\n");
 						return 1;
 					}
 				}
@@ -172,6 +178,51 @@ int search_book(Book *temp, int *num_library){
 		default:
 			printf("wrong input\n");
 			break;
+	}
+	
+	return 1;
+}
+
+int borrow_book(Book *temp, int *num_library){
+	int input_id;
+	
+	printf("type book id you want to borrow: ");
+	scanf("%d", &input_id);
+	
+	if(temp[input_id].borrowed==1){
+		printf("it's already borrowed! you can't borrow it\n");
+	}else{
+		temp[input_id].borrowed=1;
+		printf("borrowed!\n");
+	}
+	
+	return 1;
+}
+
+int return_book(Book *temp, int *num_library){
+	int input_id;
+	
+	printf("type book id you want to return: ");
+	scanf("%d", &input_id);
+	
+	if(temp[input_id].borrowed==0){
+		printf("wrong number! it's not borrowed\n");
+	}else{
+		temp[input_id].borrowed=0;
+		printf("returned!\n");
+	}
+	
+	return 1;
+}
+
+int show_all(Book *temp, int *num_library){
+	printf("[Library list]\n");
+	for(int i=0; i<*num_library; i++){
+		printf("1. id: %d // 2. title: %s // 3. author: %s // 4. publisher: %s // 5. borrow: ", i, temp[i].name, temp[i].author, temp[i].publisher);
+		if(temp[i].borrowed)
+			printf("impossible\n");
+		else
+			printf("possible\n");
 	}
 	
 	return 1;
