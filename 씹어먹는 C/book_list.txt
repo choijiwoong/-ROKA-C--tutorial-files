@@ -1,0 +1,5 @@
+title // author // publisher // borrowed
+  humanity //    karnegy //       mola // NO
+ jangbirok //       mola //      molla // NO
+    mollac //     malloc //      alloc // NO
+       End //          C //      coool // NO

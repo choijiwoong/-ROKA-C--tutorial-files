@@ -117,6 +117,7 @@ int register_book(BOOK *book_list, int *nth);
 int search_book(BOOK *book_list, int total_num_book);
 int borrow_book(BOOK *book_list);
 int return_book(BOOK *book_list);
+int make_txt(BOOK *book_list, int total_num_book);
 
 int main(){
 	int user_choice;
@@ -147,7 +148,7 @@ int main(){
 		} else if(user_choice==4){
 			return_book(book_list);
 		} else if(user_choice==5){
-			
+			make_txt(book_list, num_total_book);
 		} else if(user_choice==6){//The reason we use if not switch. for escape loop
 			break;
 		}
@@ -242,6 +243,28 @@ int return_book(BOOK *book_list){
 		book_list[num_book].borrowed=0;
 		printf("returned!\n");
 	}
+	
+	return 0;
+}
+int make_txt(BOOK *book_list, int total_num_book){
+	FILE *fp=fopen("book_list.txt", "w");
+	
+	if(fp==NULL){
+		printf("fail to open\n");
+		return -1;
+	}
+	
+	fprintf(fp, "title // author // publisher // borrowed\n");
+	for(int i=0; i<total_num_book; i++){
+		fprintf(fp, "%10s // %10s // %10s ", book_list[i].book_name, book_list[i].auth_name, book_list[i].publ_name);
+		
+		if(book_list[i].borrowed==0)
+			fprintf(fp, "// NO \n");
+		else
+			fprintf(fp, "// YES\n");
+	}
+	
+	printf("complete!\n");
 	
 	return 0;
 }
