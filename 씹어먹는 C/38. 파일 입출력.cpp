@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-//fscanf부터 마저 
-
 /*1. concept of file location indicator
 int main(){
 	FILE *fp=fopen("some_data.txt", "r");//There is some data in this FILE!!!!
@@ -57,7 +55,196 @@ int main(){
 	return 0;
 }*/
 
-//3. 
+/*3. fscanf
+int main(){
+	FILE *fp=fopen("some_data.txt", "r");//There is some data in this FILE!!!!
+	char data[100];
+	
+	if(fp=NULL){
+		printf("file open error!\n");
+		return 0;
+	}
+	
+	printf("---words---\n");
+	
+	while(fscanf(fp, "%s", data)!=EOF)//for read each words
+		printf("%s\n", data);
+	
+	fclose(fp);
+	
+	return 0;
+}*/
+
+/*4. change special word in file
+#include <string.h>
+
+int main(){
+	FILE *fp=fopen("some_data.txt", "r+");
+	char data[100];
+	
+	if(fp==NULL){
+		printf("file open error\n");
+		return 0;
+	}
+	
+	while(fscanf(fp, "%s", data)!=EOF){
+		if(strcmp(data, "this")==0){
+			fseek(fp, -(long)strlen("this"), SEEK_CUR);
+			fputs("that", fp);//cover
+			
+			fflush(fp);//for change write to read
+		}
+	}
+	
+	fclose(fp);
+	
+	return 0;
+}*/
+
+//5. upgraded library manage program
+#include <stdlib.h>
+
+struct BOOK{
+	char book_name[30];
+	char auth_name[30];
+	char publ_name[30];
+	int borrowed;
+};
+typedef struct BOOK BOOK;
+
+char compare(char *str1, char *str2);
+int register_book(BOOK *book_list, int *nth);
+int search_book(BOOK *book_list, int total_num_book);
+int borrow_book(BOOK *book_list);
+int return_book(BOOK *book_list);
+
+int main(){
+	int user_choice;
+	int num_total_book=0;
+	BOOK *book_list;
+	
+	printf("Set max size of library: ");
+	scanf("%d", &user_choice);
+	book_list=(BOOK *)malloc(sizeof(BOOK)*user_choice);
+	
+	while(true){
+		printf("[Library manage program]\n");
+		printf("choice menu\n");
+		printf("1. add new book\n");
+		printf("2. search book\n");
+		printf("3. borrow book\n");
+		printf("4. return book\n");
+		printf("5. save list as txt file\n");
+		printf("6. exit program\n");
+		scanf("%d", &user_choice);
+		
+		if(user_choice==1){
+			register_book(book_list, &num_total_book);
+		} else if(user_choice==2){
+			search_book(book_list, num_total_book);
+		} else if(user_choice==3){
+			borrow_book(book_list);
+		} else if(user_choice==4){
+			return_book(book_list);
+		} else if(user_choice==5){
+			
+		} else if(user_choice==6){//The reason we use if not switch. for escape loop
+			break;
+		}
+	}
+	
+	free(book_list);
+	return 0;
+}
+
+int register_book(BOOK *book_list, int *nth){
+	printf("title: ");
+	scanf("%s", book_list[*nth].book_name);
+	
+	printf("author: ");
+	scanf("%s", book_list[*nth].auth_name);
+	
+	printf("publisher: ");
+	scanf("%s", book_list[*nth].publ_name);
+	
+	book_list[*nth].borrowed=0;
+	
+	(*nth)++;
+	
+	return 0;
+}
+int search_book(BOOK *book_list, int total_num_book){
+	int user_input;
+	int i;
+	char user_search[30];
+	
+	printf("search element choice\n");
+	printf("1. title\n");
+	printf("2. author\n");
+	printf("3. publisher\n");
+	scanf("%d", &user_input);
+	
+	printf("type word for search: ");
+	scanf("%s", user_search);
+	
+	if(user_input==1){
+		for(i=0; i<total_num_book; i++)
+			if(compare(book_list[i].book_name, user_search))
+				printf("id: %d // title: %s // author: %s // publisher: %s\n", i, book_list[i].book_name, book_list[i].auth_name, book_list[i].publ_name);
+	} else if(user_input==2){
+		for(i=0; i<total_num_book; i++)
+			if(compare(book_list[i].auth_name, user_search))
+				printf("id: %d // title: %s // author: %s // publisher: %s\n", i, book_list[i].book_name, book_list[i].auth_name, book_list[i].publ_name);
+	} else if(user_input==3){
+		for(i=0; i<total_num_book; i++)
+			if(compare(book_list[i].publ_name, user_search))
+				printf("id: %d // title: %s // author: %s // publisher: %s\n", i, book_list[i].book_name, book_list[i].auth_name, book_list[i].publ_name);
+	}
+	
+	return 0;
+}
+char compare(char *str1, char *str2){
+	while(*str1){
+		if(*str1!=*str2){
+			return 0;
+		}
+		str1++;
+		str2++;
+	}
+	if(*str2=='\0')
+		return 1;
+	return 0;
+}
+int borrow_book(BOOK *book_list){
+	int book_num;
+	
+	printf("type book id: ");
+	scanf("%d", &book_num);
+	
+	if(book_list[book_num].borrowed==1){
+		printf("it's already borrowed!\n");
+	} else{
+		book_list[book_num].borrowed=1;
+		printf("borrowed!\n");
+	}
+	
+	return 0;
+}
+int return_book(BOOK *book_list){
+	int num_book;
+	
+	printf("type book id:");
+	scanf("%d", &num_book);
+	
+	if(book_list[num_book].borrowed==0){
+		printf("it's already returned!\n");
+	} else{
+		book_list[num_book].borrowed=0;
+		printf("returned!\n");
+	}
+	
+	return 0;
+}
 
 /*
 1.	스트림의 기본 모토는 '순차적으로 입력을 받는다'이다. fgetc이 실행될 떄마다 다음 문자를 입력받을 수 있는 이유는 파일 위치 지시자가
@@ -70,5 +257,7 @@ int main(){
 	 이 외에도 append기능("a")으로 파일 뒤에 내용을 덧붙일 수 있다.  a+는 읽기&덧붙이기를 번갈아 할 수 있다. 
 	append는 파일을 소중하게 보호할 때 적절하다. 
 4.	스트림 작업에서 쓰기->읽기로 작업을 변환할 때는 반드시 fflush함수를 호출하거나 fseek나 rewind같은 함수를 호출하여 파일 위치 지정자를 다시 설정해주어야하기 때문이다. like iterator in C++
-	 
+5.	fscanf는 scanf와 아주 유사한데, 차이는 임의의 스트림에서도 입력을 받을 수있는 일반화된 함수라는 것 뿐이다.
+	즉, fscanf(stdin, "%s", data);는 scanf("%s", data);와 정확히 일치한다. 
+6.	register변수를 선언할 수 있다. 
 */ 
