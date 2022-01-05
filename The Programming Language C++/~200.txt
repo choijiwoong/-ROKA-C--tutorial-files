@@ -1,0 +1,79 @@
+	[C++ 둘러보기: 추상화 메커니즘]
+5.	클래스 계층 구조를 사용하므로써 얻게되는 두 종류의 이점은 Interface Inheritance_기반클래스를 파생 클래스의 인터페이스 역활을 하게 하는 것과 Implementation Inheritance_파생 클래스의 구현을 간단하게 하는 것이 있다.
+6.	객체 반환 시 Based클래스 혹은 인터페이스 등으로 받을 시 그 반환값을 사용하는 user입장에서는 제대로 된 delete를 수행하지 못할 수도 있다. 즉 user에서 직접 real type을 확인하여 따로 delete처리를 해야한다.
+	파생 클래스에서 해제돼야하는 자원을 획득했을 가능성이 높기에 위 사항은 중요하다
+	 고로 위와같은 상황을 방지하기 위해 unique_ptr과 같은 smart_ptr을 반환하고 컨테이너 등에 저장하여 사용하는 것이다. 
+	고로 이 unique_ptr버전을 user가 컨테이너를 이용하여 사용하기 위해서는 vector<unique_ptr<Shape>>와 같이 해당 객체를 unique_ptr로 감싼 데이터를 처리하게하는 버전의 함수가 필요하다. not only vector<Shape>
+7.	복사 생성자와 복사 대입의 모양은 아래와 같다. 복사생성자는 말 그대로 생성자이고 복사 대입은 =연산자의 오버로딩으로 정의한다.
+	Vector(const Vector& a);
+	Vector& operator=(const Vector& a);
+8.	이동 생성자와 이동 대입의 모양은 아래와 같다. 중요한 것은 그것의 인자로부터 값을 제거하는 것이다.(정말 이동이라는 말임) 유효범위밖으로 간단하면서 적은비용으로 이동하기 위해 사용한다.
+	Vector(Vector&& a);
+	Vector& operator=(Vector&& a);
+9.	클래스 계층 구조 내에서 이동과 복사를 사용하게 되면 기반 클래스의 포인터의 경우 파생 클래스가 어떤 멤버를 갖고 있는지 모르기에 복사하는 방법등을 알 수 없다.
+	고로 그러한 연산이 일어나지 않게 Based클래스에서 delete를 통한 복사&이동 연산의 억제를 통해 방지할 수 있다.
+	 만약 클래스 계층 구조 내에서 복사가 필요하다면 clone함수를 작성하면 된다.
+10.	반환값이 const인 것과 함수가 const인 것을 햇갈려하지 말자.
+	const T& Vector<T>::operator[](int i) const;
+11.	range-based loop는 begin()과 end()의 정의를 통해 사용할 수 있다.
+12.	함수객체(정적 객체_policy object)는 inline화에 용이하다.
+13.	람다 표현식에서의 capture list는 [&x], [=x], [], [&], [=]등 여러 간편한 캡쳐가 가능하다. 
+	순서대로 단순한 x의 캡쳐, x의 사본 전달, 아무것도 캡쳐하지 않음, 모든 참조자를 캡쳐, 모든 지역이름들을 캡쳐이다.
+14.	Variadic template은 타입체크가 번거롭다는 것이 단점이다.
+15.	별칭을 사용하면 기본적으로 이식성이 높아지며, 다른데서 지정한 타입을 사용하는곳에서 아래와 같이 재정의하는 것은 상당히 좋은 사용이다.
+	template<typename C>
+	using Value_type=typename C::value_type//C namespace를 template argument로 가져와 그 namespace(클래스도 namespace)의 항목을 재정의하여 ::없이 편리하게 사용한다.
+
+	[C++ 둘러보기: 컨테이너와 알고리즘]
+1.	C++의 가비지 컬렉터는 명시적으로 설치되고 활성화되지 않으면 실행되지 않는다. 이를 사용하기 위해 ABI(Application Binary Interface)를 제공하는데 아래와 같다.
+	void declare_reachable(void* p);//p가 가리키는 객체들은 collect되지 않게 한다.
+	template<typename T>
+		T* undeclare_reachable(T* p);//declare_reachable()의 실행을 취소한다.
+	void declare_no_pointers(char* p, size_t n);//p[0:n]은 포인터를 보관하지 않는다(불필요한 collect방지)
+	void undeclare_no_pointers(char* p, size_t n);//declare_no_pointers()의 실행을 취소한다.
+	 위장 포인터들은 비트 패턴이 잘못된 타입으로 메모리에 저장돼있더라도 제대로 정렬되어있는 경우에 꼼꼼한 가비지 컬렉터에 의해 발견될 수 있고 이를 traceable이라고 부른다.
+2.	using namespace std와 같이 어떤 네임스페이스의 전부를 전역 네임스페이스로 옮기는 것은 일반적으로 좋지 않다.
+3.	출력(cout)의 기본 설정상 공백문자는 읽기를 종료시키는데 반해 getline()함수를 이용하면 \n을 기준으로 읽어들일 수 있다.
+4.	기본적인 출력연산자의 오버로딩
+	ostream& operator<<(ostream& os, const Entry& e){ return os<<"{\""<<e.first<<"\", "<<e.second<<"}"; }
+	 입력스트림은 예시가 너무 좋아 기록해두겠다...요약실패..
+	istream& operator>>(istream& is, Entry& s){//is의 { "name", number }을 entry로
+		char c, c2;
+		if(is>>c && c=='{' && is>>c2 && c2=='"'){
+			string name;
+			while(is.get(c) && c!='"')
+				name+=c;//add name until "
+			if(is>>c && c!='"'){//"이 아닌 number라면("name"일 가능성 ck)
+				int number=0;
+				if(is>>number>>c && c=='}'){숫자를 number에 저장하고 그 뒤에가 }인지를 ck.
+					e={name, number};//assign to argument entry
+					return is;//return istream
+				}
+			}
+		}
+		is.setstate(ios_base::failbit);//if read fail, set failbit to istream.s
+		return is;
+	}
+5.	표준 라이브러리 Vector는 범위체크를 보장하지 않기에 []연산자를 .at을 사용하게끔 오버로딩하여 사용하면 편리하다.
+	마찬가지로 맵같은 자료구조에서도 []대신 find(), insert()를 사용하면 편리하다.
+6.	unordered_map(중복이 가능한거지 정렬no가 아님)같은 경우 hashed lookup을 이용하기에 탐색이 빠르다. map은 O(log(n)), unordered_map은 O(1). 균형이진트리로 구현된다.
+	순서없는 컨테이너는 하나의 키를 이용한 검색에 최적화되어 있다.
+7.	unique_copy(vec.begin(), vec.end(), back_inserter(res))를 통해 동일한 개수를 갖지않는 두 컨테이너를 copy할 수 있다. back_inserter()는 삽입 반복자로 그 외에 inserter(), front_inserter()이 있다.
+8.	find(s.begin(), s.end(), c)를 통해 해당 원소에 해당하는 컨테이너의 반복자를 얻을 수 있다.
+9.	타 namespace에 iterator를 정의하고 해당 iterator를 별칭을 이용하여 사용하다면 iterator의 구현 세부사항을 은닉할 수 있다!
+	template<typename T>
+	using Iterator=typename T::iterator;
+10.	스트림 반복자를 이용하여 표준 출력에 정규적인 메시지를 써넣는 다른방법을 사용할 수 있다.
+	ostream_iterator<string> oo{cout};
+	*oo="Hello, ";//count<<"Hello, "
+	++oo;
+	*oo="word!\n";//cout<<"world!\n"
+11.	굉장히 특이한 코드
+	set<string> b{istream_iterator<string>{is}, istream_iterator<string>{});//입력을 읽어들여
+	copy(b.begin(), b.end(), ostream_iterator<string>{os, "\n"};//출력에 복사한다.
+12.	알고리즘은 특정한 문제의 집합을 해결하기 위해 순서대로 연산을 제공하는 한정된 규칙 집합으로서 한정성(Finiteness), 명확성(Definiteness), 입력(Input), 출력(Output), 유효성(Effectiveness) 총 5가지의 중요한 특성을 가지고 있다.
+	ex) p=merge(b1, e2, b2, e2, out};
+13.	using 지시자를 정 사용하고 싶으면 using 지시자를 필요로하는 전체 범위를 또다른 Extra namespace로 묶어 사용하자. 충돌을 방지하기 위해.
+
+	[C++ 둘러보기: 병행성과 유틸리티]
+1.	
