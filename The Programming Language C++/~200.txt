@@ -24,7 +24,7 @@
 	template<typename C>
 	using Value_type=typename C::value_type//C namespace를 template argument로 가져와 그 namespace(클래스도 namespace)의 항목을 재정의하여 ::없이 편리하게 사용한다.
 
-	[C++ 둘러보기: 컨테이너와 알고리즘]
+	[4. C++ 둘러보기: 컨테이너와 알고리즘]
 1.	C++의 가비지 컬렉터는 명시적으로 설치되고 활성화되지 않으면 실행되지 않는다. 이를 사용하기 위해 ABI(Application Binary Interface)를 제공하는데 아래와 같다.
 	void declare_reachable(void* p);//p가 가리키는 객체들은 collect되지 않게 한다.
 	template<typename T>
@@ -75,5 +75,91 @@
 	ex) p=merge(b1, e2, b2, e2, out};
 13.	using 지시자를 정 사용하고 싶으면 using 지시자를 필요로하는 전체 범위를 또다른 Extra namespace로 묶어 사용하자. 충돌을 방지하기 위해.
 
-	[C++ 둘러보기: 병행성과 유틸리티]
-1.	
+	[5. C++ 둘러보기: 병행성과 유틸리티]
+1.	가장 좋은 소멸방법은 아예 포인터를 사용하지 않거나 new를 사용하지 않는 것이다. 만약 사용할 경우 smart_ptr을 사용하자. shared_ptr은 메모리 관리 객체를 소멸자 기반으로 자원 관리하는 방식으로 일종의 가비지 컬렉션을 제공하는 셈과 동일하다.
+2.	threads, mutex, lock, packaged_task, futures들은 운영체제가 제공하는 기능을 기반으로 구축되어 있기 떄문에 다른 것들에 비해 성능저하를 유발하지 않는다.
+3.	병행해서 수행될 수 있는 계산을 태스크(task)라고 부르며 thread는 프로그램에 들어있는 태스크를 시스템 수준으로 표현한 것이다. 태스크는 함수 아니면 함수객체이다. callable
+	한 프로그램의 스레드는 단일 주소공간을 공유한다 unlike 프로세스.
+	 서로 통신해야하는 경우를 제외하고는 태스크를 완전히 분리시켜야 한다.(독립적으로) 즉, 스레드보다는 병행 태스크의 관점에서 생각한다.
+4.	dead lock교착상태를 막는 간단한 방법
+	unique_lock<mutex> lck1{m1, defer_lock};//defer_lock_아직 mutex획득을 시도하지 말라
+	unique_lock<mutex> lck2{m2, defer_lock};
+	unique_lock<mutex> lck3{m3, defer_lock};
+	lock(lck1, lck2, lck3);//한번에 lock 획득
+5.	간단한 메시지를 기다리고 처리하는 consumer 
+	void consumer(){
+		while(true){
+			unique_lock<mutex> lck{mmutex};//get mutex
+			mcond.wait(lck);//unlock lck, wait for notify
+							//if notify, lock lck
+			auto m=mqueue.front();//get message
+			mqueue.pop();
+			lck.unlock();//unlock
+			//process...
+		}
+	}
+6.	future & promise는 별도의 스레드에서 생성된 태스크의 값을 반환_명시적 lock없이 가능하다.
+	packaged_task는 태스크를 시작하고 결과를 반환하기 위한 메커니즘의 연결에 도움_태스크의 반환 값이나 예외를 promise에 넣는 래퍼 코드를 제공하여 get_future을 호출하면 promise에 대응되는 future을 준다.
+	async()는 함수 호출과 유사한 방식으로 태스크를 시작한다_비동기적으로 실행될 가능성이 있는 태스크의 시작(잠금을 필요로 하는 자원을 공유하는 태스크에서는 사용하면 안된다.)
+7.	duration_cast<miliseconds>(t1-t0)과 같이 duration_cast로 단위를 변경할수 있다.
+9.	Iterator_traits는 어떤 종류의 반복자가 지원되는지 체크할 수 있게 해준다. random_access_iterator_tag, forward_iterator_tag on sort_helper(this way is called as tag dispatch), Value_type, Iterator_category<Iter>
+	template<typename C>//Value_type의 구조
+		using Value_type=typename C::value_type;
+	
+	template<typename C>
+	void sort(C& c){
+		using Iter=Iterator_type<C>;
+		sort_helper(c.begin(), c.end(), Iterator_category<Iter>{});
+	}
+10.	여러 타입 술어 함수들<type_traits> is_class, is_pod, is_literal, is_virtual_destructor, is_base_of, is_literal_type. 주로 static_assert와 함꼐 사용.
+11. auto pp=make_pait(v.begin(), 2);로 type명시 없이 쉽게 pair을 만들 수 있다. auto t=make_tuple(string{"Herring"}, 10, 1.23);
+12.	regex의 대표적인 사용은 아래와 같다.
+	int lineno=0;
+	for(string line; getline(cin, line);){//use line as buffer
+		++lineno;
+		smatch matches;//for matched string
+		if(regex_search(line, matches, pat))//find pat in line
+			cout<<lineno<<": "<<matches[0]<<'\n';
+	}
+13.	난수 생성기는 난수or의사난수의 시퀸스를 생성하는 engine, 수학적 분포로 매칭하는 distribution으로 구성된다.
+	using my_engine=default_random_engine;
+	using my_distribution=uniform_int_distribution<>;
+	
+	my_engine re{};
+	my_distrubution one_to_six{1, 6};
+	auto die=bind(one_to_six, re);//make maker. connect engine to distribution
+	
+	int x=die();
+	혹은 
+	auto die=bind(uniform_int_distribution<>{1, 6}, defulat_random_engine{});//without using
+14.	valarray는 다차원 계산의 구현에 도움이 되는 stride access를 제공한다. (모든 요소들에 일관된 operate 적용)
+
+	[6. 타입과 선언]
+1.	운영체제의 지원을 받은 구현 환경에서는 모든 표준 라이브러리 기능이 포함되지만 자입적 구현 헤더(cstddef, cstdlib, new, typeinfo, type_traits)같은 것들은 
+	가장 최소한의 운영체제 지원만으로 실행되는 코드를 위한 것으로 하드웨어와 밀접한 프로그램을 위한 예외시 사용할 비표준적인 옵션을 제공한다.
+2.	산술타입(feat. wchar_t, char16_t, char32_t), 기본 제공 타입(포인터, 배열, 레퍼런스), 사용자 정의 타입
+3.	짧은 표기법으로 u'\uXXXX'와 U'\U0000XXXX'이 동일하지만, 가독성을 위해 8진수표기시 숫자 3개, 16진수는 숫자 2개사용하자. (일반적인0은 8진수이다)
+	char v1[]="a\xah\129";//6 chars: 'a', '\xa', 'h', '\12', '9', '\0'
+	char v2[]="a\xad\0127";//5 chars: 'a', 'xad', '\012', '7', '\0'
+4.	어떤 타입을 unsigned로 바꾸어 효율성을 높이려는 사고는 암시적 변환 규칙에 의해 대부분 깨진다.
+5.	통합 정수 리터럴에서 접미사들의 조합이 허용되기에 0LU는 unsigned long이다. 접미사는 32비트 컴퓨터와 16비트 컴퓨터에서의 타입을 통일하기 위해 사용한다.
+6.	<limits>내의 함수는 런타임 오버헤드가 없어야하며 상수 표현식을 필요로 하기에 constexpr이다.(타입 범위)
+	<cstddef>에서는 표준라이브러리 선언과 사용자 코드 양쪽에서 매우 광범위하게 활용되는 별칭이 정의되기에 부호있는 정수타입 ptrdiff_t가 정의되어 있다. 이는 요소의 개수를 구하기 위한 포인터 사이의 뺄셈 결과를 보관한다!
+7*	alignof()는 인자타입의 정렬을 반환하며 T와 똑같이 정렬하라는 것을 의미하기 위해 alignas(T)로도 사용한다. X를 위해 초기화되지 않은 저장공간을 준비하는 예시는 아래와 같다.
+	void user(const vector<X>& vx){
+		constexpr int bufmax=1024;
+		aligas(X) char buffer[bufmax];//uninitialized. Z is some type. 이 배열은 X의 정렬을 따릅니다(크기)
+		const int max=min(vx.size(), bufmax/sizeof(X));//적재 최대값을 구한 뒤
+		unitialized_copy(vx.begin(), vx.begin()+max, reinterpret_cast<X*>(buffer));//초기화되지 않은 buffer에 vx를 iterator사용 복사하는데 그 단위는 X*로 저장한다.
+		//...
+	}
+8.	주로 햇갈리는 선언은 다음과 같다. double sqrt(double);//함수 선언 extern int error_number;//변수 선언 struct User;//타입 이름 선언. 즉 이들은 다른곳에서 정의돼야 한다.
+9.	선언은 크게 specifier(static, virtual), base type(const int, vector<double>), declarator(p[7]), initializer({retunr x;}, ={7,5,3}), 선택적 접미사 함수 지정자(const, noexcept)로 나뉜다.
+10.	가려진 전역 이름은 scope resolution연산자로 사용이 가능하다. ::x=2;(전역 x사용) 참고로 가려진 지역이름을 사용할 방법은 없다.
+11.	초기화식{}은 auto에 무용화되는데 initializer_list로 추론하기 때문이다. 고로 auto는 =와 함께사용하고 나머지는 {}를 사용하는게 안전상 좋다. 이는 기본값읗 넣겠다는 의미를 수반한다.
+12.	초기화되지 않은 값이 좋은 경우는 유일하게 대규모 입력 버퍼에 대해서인데, 불필요하게 큰 범위를 초기화하여 성능타격을 감수할 필요가 없기 때문이다.
+	constexpr int max=1024*1024;
+	char buf[max];
+	some_stream.get(buf, max);//초기화 없이 사용 char buf[max]{}; X
+13.	default constructor가 없는 사용자 정의 타입은 (stack에 할당된) default setting으로 초기화되지 않는다. 만약 기본타입지역변수나 new로 생성된 기본제공타입의 객체 초기화는 {}를 사용한다. int* p{new int{10}};
+14.	선언문에서 ()은 항상 함수를 의미한다. complex<double> z1(1, 2); complex<double> f1(); complex<double> z2{1,2}; complex<double> f2{};
