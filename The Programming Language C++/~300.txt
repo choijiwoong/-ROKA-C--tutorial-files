@@ -37,5 +37,6 @@
 2.	range-based-loop에서 하나의 원소를 수정하려면 원소 변수가 참조자여야 한다.
 3.	초기화 할 수 있는 값이 생기기 전까지 선언을 삼다가 선언과 동시에 초기화해주는 것이 효율적이다.
 	
-	[표현식]
-1.	
+	[표현식]_탁상용 계산기를 참고하자.
+1.	object는 클래스 객체를 만드는 표현식이다. expr은 리터럴을 포함한 표현식이다. capture-list는 상황 정보 의존성을 지정하는(비어있을 수 있는) 리스트다. stmt_list는 (비어있을수있는) 문장의 리스트다.
+2.	::name(전역 연산자), dynamic_cast<type>(expr)_런타임 체크 변환, static_cast<type>(expr)_컴파일 타임 체크 변환, reinterpret_cast<type>(expr)_미체크 변환, const_cast<type>(expr)_const 변환, sizeof... name_매개변수 묶음의 크기, alignof(type)_타입의 정렬
