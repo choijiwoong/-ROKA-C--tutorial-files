@@ -1,0 +1,31 @@
+잠깐 잊고있었는데 지금까지 내가 해온 것과 앞으로 이뤄낼 것들을 보며 잊고있던걸 다시한번 깨닫게 됬네. 나 좀 대단한 놈이었지. 개앞맵시로 앞으로 가야할길이 한참 남았다는 것을 인지하고 좀 많이 좌절했었는데 그럴 필요가 없었구나. 
+2021년은 내가 최선을 다해 성장하고 발전해서 후회없이 살아온 시간이었는데 그 시간의 존재를 잠시 망각하고 조급해하고 자책했었다니..ㅎ 뭐가 급해서 나를 그렇게 몰아넣었는지.. 전역하고 나에게 복학까지 주어진 9개월이면 내가봤을때 그 길. 최소 반을 다다를 수 있을 것 같은데. 나한테 불가능은 없잖아.
+(실수로 ~400에 실을 전통적인 예외처리방법인데 바로 커밋해버렸네... error_code를 전역으로 두어 확인하게 하거나 값 반환시 pair로 second에 오류 여부를 넣는 방법이 있음..)
+	[예외 처리]
+5.	성공적인 fault-tolerant system은 최대한 모든 오류에 대처하며 나머지는 높은 레벨이 처리하는 다중 레벨이며, terminate()는 예외가 붙잡히지 않는 경우에 빠져나가게 해주며 noexcept()는 복구불가능할때 오류를 벗어나는 간단한 방법을 제공한다(terminate호출). 가끔은 이러한 방법으로 관리작업을 컴퓨터, 즉 예외처리 메커니즘에 맡기는 방법이 최선이기도 하다.
+	대부분의 C코드는 exception개념이 없기에 다 noexcept로 선언될 수 있으며 C 표준에선 atexit(), qsort()등만이 오류를 던질수있다는걸 인지하면 최적화가 더 편해진다. <다만 항상 측정없는 효율성논의는 무의미하다.> noexcept 키워드는 항상 고려하여 컴파일러가 최적화할 수 있게끔 하자!
+6.	어떤 연산에서 exception발생하여 exit시에도 프로그램을 유효하게 남겨두는 것은 exception safe라고 부른다. (p.s valid state_constructor complete, destructor not yet) 또한 <메모리 뿐만 아닌 파일잠금, 네트워크 연결, 스레드 등 되돌려져야하는 것은 모두 자원으로 취급된다.>
+7.	C++ 표준 라이브러리는 다음중 하나를 보장한다. basic guarantee(모든 객체 기본 불변속성유지, 자원누츨 X), strong guarantee(연산실패시에 영향X), nothrow guarantee(예외X). 이러한 guarantee를 유지하기 위해 아예 객체생성시 다루기 쉬운 케이스로 강제하면 편리하다. p.407
+	basic guarantee와 strong guarantee는 다음의 조건을 만족해야 제공된다. 사용자 제공 연산(swap등)은 컨테이너 원소를 invalid로 두지 않고, 누출되지 않으며, smart는 nothrow여야 한다. 
+8.	객체생성자완료전까진 생성된것으로 간주하지 않기에 stack unwinding이 해당 객체의 소멸자를 호출할 수 있다. 고로 생성자 실행도중 완성이달성될 수 없다면 이전의 상태를 복원하는 것이 바람직하며 항상 객체를 반쯤 만드는 것은 올바르지 않다.
+9.	finally구조는 임기응변식이기때문에 지양한다. 최종 동작은 생성자인자로 제공하며 소멸자에 넣어 scope종료시에 호출된다. finally()는 주로 제어스레드가 유효 범위를 빠져나가는 수 많은 장소에 일일이 코드를 넣는 수고를 덜어준다.
+	template<typename F>
+	struct Final_action{
+		Final_action(F f): clean{f}{}//생성시 F clean을 인자로 초기화
+		~Final_action(){ clean(); }//삭제시 clean() 호출.
+		F clean;
+		Final_action(const Final_action&)=delete;
+		Final_action& operator=(const Final_action&)=delete;
+	};
+	
+	template<typename F>
+	Final_action<F> finally(F f){ return Final_action<F>(f); }//finally함수는 인자로 받은 것을 Final_action에 넣어 리턴.
+10.	생성자가 클래스 불변속성을 구축할 수 없을 경우 객체는 사용될 수 없기에 성능을 위해 아무것도 하지않거나 선행조건충족실패시 적시에 완전한 복구가 어렵거나 프로그램 재실행이 쉬운경우 프로그램을 종류하기도 한다. (static_assert()를 사용하자)
+11.	throw가능한 타입은 복사|이동이 가능한 것이며 원칙상으론 던져진 객체의 사본이다. stack unwinding은 handler로 exception throw 지점에서 스택을 거슬러 전달하는 것이다.(catch로의 jmp). 생성된 순서의 역순으로 소멸된다.
+12.	noexcept연산자는 noexcept(Is_pod<T>())꼴로 쓰이며 Is_pod가 true면 객체를 던지지 않지만, false면 던질 수 있다는 의미이다. noexcept 지정과 다르다.
+	template<typename T, size_t N>
+	void swap(T (&a)[N], T (&b)[N]) noexcept(noexcept(swap(*a, *b)));//noexcept의 피연산자는 평가되지 않는다는 것을 보여주기 위한 예시. 조건부noexcept지정과 noexcept()연산자가 같이 사용되었다.
+13.	new가 표준 메모리 부족 예외 bad_alloc을 던지기에 충분한 메모리는 어떤 경우에서도 반드시 보장된다.
+14. rethrow시 피연산자없는 throw를 사용한다. 이는 기존에 던져진 원래의 예외이지 방금 해결했다고 바뀐 예외가 아니다. 즉 예외를 쪼개는 것을 허용하지 않고 원본 그대로 rethrow한다. 
+	참고로 std::exception을 잡아도 어플리케이션 특유의 계층구조에서 등장하는 예외는 잡히지 않을 것이다. 고로 모든 예외를 잡기 위해선 catch(...)을 사용한다.
+15. 함수 본체가 try블록이 될 수 있다. 즉 생성자 내에서 try, catch가 가능하다. 기본설정상 이는 생성자를 호출한 것으로 간주하며, 소멸자에서도 안에서 던지고받고가 가능하지만 소멸자안이기에 예외가 없던것처럼 객체회복을 시키는 것은 불가능하다.(stack winding이 이미 실행중이기에 복구한다해도 다른 destructor실행되었을지도..)
