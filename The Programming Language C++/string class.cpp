@@ -6,6 +6,18 @@
 namespace self_string{
 	class String;
 	
+	//support functions
+	std::ostream& operator<<(std::ostream&, const String&);
+	std::istream& operator>>(std::istream&, String&);
+	bool operator==(const String&, const String&);
+	bool operator!=(const String&, const String&);
+	char* begin(String&);
+	char* end(String&);
+	const char* begin(const String&);
+	const char* end(const String&);
+	String& operator+=(String&, const String&);
+	String operator+(const String, const String&);
+	String operator"" _s(const char*, size_t);
 	int hash(const String&);
 	void print_in_order(const String&, const std::vector<int>&);
 	char* expand(const char*, int);
