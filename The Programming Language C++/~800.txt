@@ -28,3 +28,34 @@
 10.	inline이 아닌 non-template function들과 static멤버들은 일부 컴파일 단위에서 고유 정의를 가져야하는데, 많은 해석 단위에 포함될 가능성이 있는 템플릿은 쓰지 않는 것이 좋다는 것이다. 많약 쓰게 되면 구현에서 잡아낼 수없는 오류가 발생될 수 있다. 만약 불가피하다면 명시적 인스턴스화나 extern template(한번만 인스턴스화되게)을 사용하자.
 11.	최적의 방법은 복잡한 템플릿 라이브러리를 비템플릿 인터페이스로 캡슐화하여 라이브러리 변경의 노출을 최소화하는 것이다. ex. double accum(const vector<double>& v); 템플릿이 없는 선언! 알아서 내부에서 추론한다. 다만 복잡성의 근원이 될 수 있기에 표준라이브러리 구현에는 사용하지 않는것을권장하지만, 더 복잡하며 자주 변경된다면 유용하다.
 12. 클래스 템플릿을 복사가능하게하려면 비템플릿 복사 생성자와 비템플릿 복사 대입 생성자를 만들어야 한다. 또한 템플릿 설계시 템플릿 인자에 대해 가정된 콘셉트(tmp인자 요구사항)를 신중하게 고려해야 한다.
+13. 템플릿에 제공되는 타입테크시 duck typing이라고 불리는 타입 변형을 제공하는데, 이는 실제 타입과 관계없이 실제로 사용되는 양상으로 추론하는 것이다. 일반화 프로그래밍에서 주요한 두가지 요소는 lifting_알고리즘을 범용화, concept_요구사항을 신중하고 정확하게 가정 이다.
+	리프팅에 도움이 되는 알고리즘 설계 철학은, 기능을 추가하여 구체적인 예제의 용도를 훼손하지 않는 선에서 알고리즘을 끄집어 내라는 것이다. 콘셉트의 예시는 다음과 같다. -는 제공하지만 +는 제공하지 않는 타입, 복사연산이 복사하지 않는 타입 등.. 우리가 물리적 세계에서와 plug compatibility를 구현할 수 있다면 이상적인 concept이다.
+	concept는 다음의 3단계 분석으로 찾아간다. 어떤 속성(연산, 함수, 멤버 타입 등)을 사용할지->템플릿 구현의 가능성 있는 대안과 그들의 (보다 엄격한)요구사항 체크->다른 템플릿에 사용한 적이 있는 concept 리스트와 비교(for 일반화). 여기서 앞의 두 단계는 lifting(범용화)과 비슷하나, 마지막 단계는 정확히 일치하는 인자요구사항의 집합제공의 유혹에 반대한다.
+	(즉, 템플릿 인자에 대한 알고리즘의 요구사항을 최소화한 다음 좀 더 폭넓은 용도로 범용화함으로서 콘셉트를 발견한다. 다만 가능하면 잘 알려진 콘셉트의 리스트에서 콘셉트를 선택하자. 우리를 믿지 말자ㅋㅋ)
+14.	concept설계시 우리의 요구사항 리스트(concept들)가 잘 알려진 콘셉트(regular type)와 관련되는지를 볼 수 있는데, regular type이란 적절한 복사의미구조로 복사가 가능하며, default constructor가 있고, 사소한 기술적 요구사항과 문제가 없으며, 동등성을 비교할 수 있는것을 의미한다.(concept집합을 파다보면 regular을 정의하게 된다)
+	예로 string같은 클래스의 경우 ==나 <<, ordered(feat. strick weak order_irreflexivity, asymmetry, transitivity, transivitiy of incomparable) 등을 제공하면 여러 유용한 연산을 제공할 수 있지만, 드물게 사용되거나 특정 연산에만 필요한 요구사항들은 적절히 줄여야 한다.
+	콘셉트인지 아니면 타입임시적인 제약조건의 집합에 불과한지를 판단하기 위한 질문은 '대강이라고 의미 구조를 기술할 수 있는가?'이다. 콘셉트는 constexpr 술어함수이며 constraint check이라는 용어는 이러한 술어함수를 가리키지만, 실제적인 뜻은 concept와 다르게 의미구조이슈를 다루지 않으며 단순한 문법적 속성에 대한 가정을 체크하는 것이다.
+15.	제약조건체크 템플릿을 통해 콘셉트를 체크하는 방법(concept example의 Totally_ordered로 concept체크하는 방법)에는 명백한 취약점이 있는데, 제약조건체크가 실제 정의에 속하지 않으며, 인스턴스화과정의 일부로 늦은 체크의 가능성이 있으며, 우리가 제약조건체크삽입을 잊을 수 있고, 
+	컴파일러가 우리가 정한 콘셉트만 사용하는지 모르기에 제약조건체크성공후에도 타입체크실패가능성이 있으며, 우리가 컴파일러가 이해할 수 있는 의미구조속성을 지정하지 않기 때문이다. (axiom(공리)는 우리가 증명할 수 없는 그 무엇으로 위와같은 상황에서는 의미 구조 속성을 언급하는 뜻으로 그냥 테스트 전 가정(우리가 뭘 기대하고 이 콘셉트를 만드는지)이며, 설계도구와 테스트 지침으로 활용한다.)
+	다중인자 콘셉트(template argument여러개), 값 콘셉트(값을 비교하여 bool 반환)등이 있다. 구현콘셉트에 의해 지정된 속성을 제공하는 인자들로만 구현을 테스트해야하지 다른 인자들까지 테스트하면 안된다. 그러한 타입(지정된 속성을 제공)들을 archetype(전형)이라고 부른다.
+16.	유용하게 쓰일 수 있는 (비표준)제약조건체크는 다음과 같다. Input_iterator<X>, Output_iterator<X>, Forward_iterator<X>, Bidirectional_iterator<X>, Random_access_iterator<X>, Totally_ordered<X,Y>, Equality_comparable<X,T>, Semiregular<X>, Regular<X>, Ordered<X>, Assignable<X,Y>, Predicate<F,X>, Streamable<X>, Movable<X>, Copyable<X>, Convertible<X,Y>, Common<X,Y>, Range<X>
+17.	concept에 기존 타입을 사용할 것이라면 필요 이상으로 융통성 있는 타입을 선택하지 않게 해야지 필요 이상의 범용적인 것을 선택하게 되면 제대로된 test가 불가하다. 고로 비교적 작고 잘 정의된 콘셉트의 집합을 사용해야 한다.(유지보수도 굳)
+
+	[특수화]
+1.	템플릿이 받아들이는 인자는 type parameter, value parameter, template parameter로 템플릿 인자에 typename이나 class접두사를 붙이면 정의되는 것이 type parameter이다. value argument는 통합정수상수표현식, 외부링크관계의 함수 또는 객체에 대한 포인터또는 참조자, 멤버를 가리키는 오버로딩되지 않은 포인터, 널 포인터가 될 수 있다.
+	문자열 리터럴은 template parameter이기에 value parameter로 받을 수 없다. 참고로 value template parameter는 const이기에 변경하려하면 오류가 발생한다. type template parameter는 다음과 같이 사용될 수 있다. template<typename T, T default_value>, template<typename T, T default_value=T{}>
+2.	template patameter로 인해 type에 의존하는 cmp callable이라건가, map이라던가에 유용하다. template<typename Key, typename V, bool(*cmp)(const Key&, const Key&)> class map{}//템플릿 값 인자	template<typename Key, typename V, typename Compare=std::less<Key>> class map{}//템플릿 타입 인자
+	첫번예시처럼 functor로 비교연산을 전달하면 포인터로 함수를 가리키는 것 보다 쉽게 인라인화가 가능하며, 멤버없는 functor는 런타임비용이 없으며, 여러 연산을 단일 객체로 전달해도 추가적인 런타임 비용이 들지 않는다. 다만 람다는 functor로의 변환이 불가능하기에 아래처럼 이름을 붙인 람다만 가능하다.
+	auto cmp=[](const string& x, const string& y) const {return x<y;}	map<string, int, decltype(cmp)> c4{cmp};
+3.	템플릿 인자로 템플릿을 전달할 수 있다. template<typename T, template<typename> class C> 근데 이런경우 그냥 컨테이너 사용하는게 더 좋을수도 있다. 앞에서 언급한 template<typename Key, typename V, typename Compare=std::less<Key>>는 또다른 이점이 있는데, 특이한 비교 기준만 명시적으로 지정해 사용이 가능하다는 것이다. map<string, int , Complex_compare> ~
+4.	모든 함수 템플릿 인자가 기본 설정(argument에 default value 모두set)되어있다면 <>을 생략할 수 있다.
+5.	특수화(user-defined specialization, user specialization)은 런타임 다형적 동작을 보존하기 위해 사용된다. <>는 template parameter없이 지정될 수 있는 특수화라는 의미이다. ex. template<> class Vector<void*d>{}//포인터에 대해 특수화. 이는 complete specialzation이라고 한다. template<typename T> class Vector<T*>처럼도 가능하다.
+	template argument가 포함된 패턴을 가지는 특수화는 complete specialization(void*)과 비교하여 partial specialization이라고 부른다. 특수화는 공통 인터페이스의 다른 용도에 대한 구현 대안을 지정하는 하나의 방법이다. 
+	특수화의 변형으로 여러 타입의 값에 대한 단독 런타임 표현을 사용하고 그런 타입의 값들이 선언된 타입에 따라서만 쓰일 수있도록 보장하기 위해 정적 타입 체계에 의존하는 기법을 type erasure라고 부른다. 즉, 컴파일타임에서만 타입제약조건을 체크하고 런타임시에는 타입을 제거한다는 말이다.
+6.	특정 집합의 템플릿 인자에 대한 클래스 템플릿을 구현하는 방법을 구현 특수화라고 하는데 다음과 같다. class Matrix<T,0> class Matrix<T,1>, class Matrix<T,2>
+7.	템플릿에 대한 범용적인 정의와 특정 집합의 템플릿 인자에 대한 구현을 모두 가진 가장 범용적인 템플릿을 primary template이라고 한다. 이게 고려되고나서야 특수화가 고려되는 것이다. 고로 기본 템플릿이 어떤 특수화보다 먼저 선언되어야 한다.
+	template<typename T>
+	class List<T*>{};
+	
+	template<typename T>
+	class List{};//오류! 특수화 이후의 primary template.
