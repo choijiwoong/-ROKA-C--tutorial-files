@@ -111,7 +111,6 @@ namespace Red_Black_Tree{
 		}
 		//...
 	};
-	
 	//try 2 end
 	
 	template<typename Val>
@@ -134,5 +133,44 @@ namespace Red_Black_Tree{
 			else
 				root.add_right(p);
 		}
+	}
+}
+
+namespace Red_Black_tree{
+	//initial structure
+	template<typename N, typename Balance>
+	struct Node_base: Balance{
+		//...
+	};
+	
+	template<typename Val, typename Balance>
+	struct Search_node: public Node_base<Search_node<Val, Balance>, Balance>{
+		//...
+	};
+	
+	//Another structure_make balancer to implicit argument as form of associated type(balancer has to know user's value for balancing)
+	template<typename N>
+	struct Node_base: N::balance_type{
+		//...
+	};
+	template<typename Val, typename Balance>
+	struct Search_node: public Node_base<Search_node<Val, Balance>>{
+		using balance_type=Balance;
+		//...
+	};
+	
+	//result
+	struct Red_black_balance{};//data and operations
+	
+	template<typename T>
+	using Rb_node=Search_node<T, Red_black_balance>;//nick for redblacktree
+	
+	Rb_node<double> my_root;//double redblacktree. root node making
+	
+	using My_node=Rb_node<double>;//for easy making
+	
+	void user(const vector<double>& v){
+		for(auto x: v)
+			my_root.insert(*new My_node{x});//add node to root node
 	}
 }
