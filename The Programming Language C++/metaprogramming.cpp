@@ -126,7 +126,7 @@ namespace Enable_if_example{
 	};
 }
 
-namespace tuple_structure{
+namespace tuple_structure_simple{
 	//Tuple<double, int, char> x{1.1, 42, 'a'}; cout<<get<1>(x);처럼 사용하는 것이 목표. sizeof(T0)==8, sizeof(T1)==4, sizeof(T2)==4 thanks to empty-base optimization
 	
 	template<typename T1=Nil, typename T2=Nil, typename T3=Nil, typename T4=Nil>//Nil is default template argument
@@ -195,4 +195,68 @@ namespace tuple_structure{
 	const Select<N, T1, T2, T3, T4>& get(const Tuple<T1,T2,T3,T4>& t){
 		return getNth<Select<N,T1,T2,T3,T4>,N>::get(t);
 	}
-} 
+}
+
+namespace tuple_structure_variadic{
+	template<typename... Values> 
+		class tuple;
+		
+	template<> 
+		class tuple<>{};//0-tuple
+		
+	template<typename Head, typename... Tail>
+	class tuple<Head, Tail...>: private tuple<Tail...>{
+		typedef tuple<Tail...> inherited;
+		
+		public:
+			constexpr tuple(){}
+			tuple(Add_lvalue_reference<Head> h, Add_lvalue_reference<Tail>... t): m_head(h), inherited(t...){}
+			template<typename... VValues>
+			tuple(const tuple<VValues...>& other): m_head(h), inherited(other.tail()){}
+			template<typename... VValues>
+			tuple& operator=(const tuple<VValues...>& other){
+				m_head=other.head();
+				tail()=other.tail();
+				return *this;
+			}
+			
+			template<size_t N>
+			stuct print_tuple{//std::tuple doesn't provide << , >> because of complexity. we need struct with two print() for creating that function
+				template<typename... T>
+				static typename enable_if<(N<sizeof...(T))>::type
+				print(ostream& os, const tuple<T...>& t){
+					os<<", "<<get<B>(t);
+					print_tuple<N+1>::print(os,t);
+				}
+				template<typename... T>
+				static typename enable_if<!(N<sizeof...(T))>::type
+				print(ostream&, const tuple<T...>&){}
+			};
+			//...
+		protected:
+			Head m_head;
+		private:
+			//std::tuple doesn't provide head, tail. so make it private
+			Add_lvalue_reference<Head> head(){ return m_head; }
+			Add_lvalue_reference<const Head> head() const { return m_head; }//produce const version for preventing implicit copy
+			inherited& tail(){ return *this; }
+			const inherited& tail() const{ return *this; }
+	};
+	
+	std::ostream& operator<<(ostream& os, const tuple<>&){//empty tuple
+		return os<<"{}";
+	}
+	template<typename T0, typename... T>
+	ostream& operator<<(ostream& os, const tuple<T0, T...>& t){
+		os<<'{'<<std::get<0>(t);
+		print_tuple<1>::print(os,t);
+		return os<<'}';
+	}
+	
+	//user
+	void user(){
+		cout<<make_tuple()<<'\n';
+		cout<<make_tuple("One meatball!")<<'\n';
+		cout<<make_tuple(1,1.2,"Tail!")<<'\n';
+	}
+}
