@@ -54,4 +54,7 @@
 	다만 항상 표준화된 오버로딩 규칙, 특수화 규칙을 따라서 난잡하게 만들지 않는 것이 중요하다.
 10.	Tuple을 파생 클래스의 '스택'으로 정의한 방식은 Tuple의 첫 원소가 가장 높은 주소를 얻고 마지막 원소가 전체 Tuple과 동일한 주소를 갖게되는 특징을 갖는데, 이는 흥미로운 최적화(empty-base optimization 등)의 가능성을 열어주어 sizeof(T0)==8, sizeof(T1)==4, sizeof(T2)==4와 같은 결과를 얻을 수 있다.(Tuple의 []연산자를 오버로딩하여 get<2>(x)처럼 사용하지 않으려고 시도하면 안됌..별도로 처리해야함..)
 	auto xxx=make_tuple(1.2, 3, 'x', 1223);처럼 make_tuple로 인자타입 암시적추론기능을 사용할 수 있다.
-11.	Variadic template argument로 printf의 취약점을 보완하는 등 쓸 수 있지만, type check가 안되기에 항상 사용시 predicate로 type check을 해주어 일관적인 작업처리를 유도하는 것이 현명하다.
+11.	Variadic template argument로 printf의 취약점을 보완하는 등 쓸 수 있지만, type check가 안되기에 항상 사용시 predicate로 type check을 해주어 일관적인 작업처리를 유도하는 것이 현명하다. template parameter pack이나 function parameter pack은 class X: public Bases...{처럼 기반클래스에도 사용이 가능하다.(feat. sizeof...)
+12.	가변인자 템플릿의 주요 용도 중 하나는 한 함수에서 다른 함수로 포워딩하는 것으로 다음과 같다. template<typename F, typename... T>	void call(F&& f, T&&... t){	f(forward<T>(t)...);	}
+13.	리터럴 연산자 오버로딩 시 정수리터럴을 제공한다고 하면 unsigned long long 에 대한 접미사까지 다 정의해야 잘 작동한다. Unit SI..
+14.	템플릿 별칭을 타입반환하는 타입함수에 대한 인터페이스로, constexpr함수를 값을 반환하는 타입함수에 대한 인터페이스로 활용하자. 모든 경우에 variadic을 사용하는 것이 아니라 균일한 타입이라면 initialize_list를 사용하자. 포워딩에는 variadic과 std::move를 사용하자.
