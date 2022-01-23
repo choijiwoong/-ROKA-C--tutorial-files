@@ -12,7 +12,7 @@ namespace MATRIX{
 	//We will use class, parameterization, move constructor & assign, RAII, variadic template, initialzier_list, operator overloading, functor, TMP, implementation inheritance
 	//Writer of this book supposes Matrix is 1~2 dimention of preventiong of changing to enginerring code
 	//Matrix, Matrix_ref, Matrix_slice is used. and inner function is in Matrix_impl. Matrix_ref cannot survive more than it's Matrix
-	//we use std::inner_product
+	//we use std::inner_product, std::swap, std::enable_if
 	
 	template<typename T, size_t N>
 		class Matrix_ref;
@@ -191,6 +191,19 @@ namespace MATRIX{
 			operator const T&(){ return elem; }
 		private:
 			T elem;
+	};
+	template<>
+	class Matrix<double,1>{//for sol example p.922. thanks to this, U=M*V+W will extent automatically to U.operator=(MVmulVadd(MVmul(M,V),W))
+		public:
+			Matrix(const MVmulVadd& m){
+				//...
+				mul_add_and_assign(this, &m.m, &m.v, &m.v2);
+			}
+			Matrix& operator=(const MVmulVadd& m){
+				mul_add_and_assign(this, &m.m, &m.v, &m.v2);
+				return *this;
+			}
+			//...
 	};
 	
 	//implementations
@@ -492,5 +505,70 @@ namespace USER{
 	Vec classical_gaussian_elimination(Mat2d A, vec b){
 		classical_elimination(A, b);
 		return back_substitution(A, b);
+	}
+	
+	void elim_with_partial_pivot(Mat2d& A, Vec& b){
+		const size_t n=A.diml();
+		for(size_t j=0; j!=n; ++j){
+			size_t pivot_row=j;
+			//find pivot
+			for(size_t k=j+1; k!=n; ++k)
+				if(abs(A(k,j))>abs(A(pivot_row,j)))
+					pivot_rpw=k;
+			if(pivot_row!=j){//if find proper pivot, swap
+				A.swap_rows(j,pivot_row);
+				swap(b(j),b(pivot_row));
+			}
+			//delete
+			for(size_t i=j+1; i!=n; ++i){
+				const double pivot=A(j,i);
+				if(pivot==0)
+					error("can't solve: pivot==0");
+				const double mult=A(i,j)/pivot;
+				A[i](slice(j))=scale_and_acc(A[j](slice(j)), -mult, A[i](slice(j)));
+				b(i)-=mult*b(j);
+			}
+		}
+	}
+	
+	//test for error on code, wrong input of classical_elimination(), loss of rounding.
+	void solve_random_system(size_t n){
+		Mat2d A=random_matrix(n);
+		Vec b=random_vector(n);
+		cout<<"A="<<A<<'\n';
+		cout<<"b="<<b<<'\n';
+		try{
+			Vec x=classical_gaussian_elimination(A,b);
+			cout<<"classical elim solution is X="<<x<<'\n';
+			cout<<"A*x="<<v<<'\n';
+		} catch(const exception& e){
+			cerr<<e.what()<<'\n';
+		}
+	}//loop fusion problem.
+}
+
+namespace USER2{
+	using Mat2d=Matrix<double,2>
+	using Vec& v;
+	
+	struct MVmul{//Matrix x Vector
+		const Mat2d& m;
+		const Vec& v;
+		MVmul(const Mat2d& mm, const Vec& vv):m{mm}, v{vv}{}
+		operator Vec();//evaluate & return
+	};
+	inline MVmul operator*(const Mat2d& mm, const Vec& vv){
+		return MVmul(mm,vv);
+	}
+	
+	struct MVmulVadd{
+		const Mat2d& m;
+		const Vec& v;
+		const Vec& v2;
+		MVmulVadd(const MVmul& mv, const Vec& vv):m(mv.m), v(mv.v), v2(vv){}
+		operator Vec();
+	};
+	inline MVmulVadd operator+(const MVmul& mv, const Vec& vv){
+		return MVmulVadd(mv,vv);//return object when operator+ is used. and when we want to know evaluated value, call operator Vec(). delay evaluation!
 	}
 }
