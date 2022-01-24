@@ -2,3 +2,42 @@
 1.	간단한 slice는 원소위치(색인)으로의 매핑을 '첫 번째 색인', '포함된 색인의 개수(범위 체크에 사용)', '시퀸스에서 원소 사이의 거리' 세가지 값의 관점이서 기술한다. (p.s slice는 표준 라이브러리버전이 존재한다)
 2.	Matrix와 Matrix_ref는 닮았기에 중복문제가 일어날 수 있는데, 그럴경우 둘 모두를 공통 기반 클래스에서 파생하여 해결할 수 있다. Matrix_base
 3.	1차 방정식을 해결하기 위해서는 우선 계수들을 nxn 정방 행렬로 만든다. 그 뒤 가우스소거법을 사용하는데, 대각선 아래의 계수가 0이 되는 상 삼각을 이용한 상 삼각행렬로 변환한다. 그 후 back substitution을 통해 찾을 수 있다.
+4.	성능을 매우 신경쓴다면 병합 연산 시 지역변수에 할당된 원소들이 한곳에 모이는 문제 즉 루프 병합(loop fusion)이 발생한다. 하지만 이는 그냥둬도 된다..민감한거아니면. 이를 해결하기 위해서는 평가지연을 통해 시간을 낭낭히 받으면 되는데, 이때 생성되는 객체를 composition closure objects또는 compositor라고 부른다. 
+	이러한 기법이 모든 연산의 실행을 지연시키기 위해 사용된다편 expression template이라고 부르며, 이를 통해 functor를 체계적으로 이용하기에 표현식을 Abstract Syntax Tree(AST)라고도 부른다.
+	
+	[표준 라이브러리 개요]
+1.	<typeindex> type_info를 키나 해시코드로 사용, <scoped_allocator> 유효 범위를 가진 할당자, <cstdlib> bsearch() qsort(), <cassert> 단정 매크로, <cerrno> C 스타일 오류 처리, <system_error> 시스템 오류 지원 (<cstddef> sizeof반환타입, ptrdiff_t, NULL 매크로)
+2.	<cctype> 문자 분류, <cwctype> 와이드 문자 분류, <cstdlib> C 스타일 할당 함수, <impanip> 조작자(스트림의 상태 조작), <local> 문화적 차이 표현, <codecvt> 코드 변환 패싯(facet), <cstdarg> 가변 길이 함수 인자 리스트, <csetjmp> C 스타일 스택 풀기, <csignal> C 스타일 신호 처리
+3.	<cstdbool> C bool(bool, true, false매크로 X), <cfenv> 부동소수점 환경(부동소수점 상태 플래그 및 구현의 부동소수점 환경 기술 제어모드 제공)
+4.	initializer_list의 reference는 const이며, 첨자연산자를 제공하지 않기에 *이 아닌 []을 사용하고 싶다면 포인터에 첨자를 달자. 즉, list자체는 iterator로 접근을 하며 operator[]는 *(p+i)를 의미하니 iterator.begin()[i]처럼 사용하라. (range-based loop는 begin(), end())
+5.	오류처리에 대해선 C는 errno를 설정해서, 시퀸스는 마지막 원소 하나 다음의 원소에 대한 반복자를 반환해서, IO스트림은 각각 스트림 내에서 오류를 반영하는 상태에 의돈해서, 일부 표준 라이브러리 구성 요소는 exception을 던져 처리한다(with 기본적 보장). 예외를 던질 수 있는 객체를 조작하는 모든 연산은 예외를 던질 것이라고 가정해야한다.
+6.	<exception> exception_ptr[지정되지 않은 예외], curerent_exception()[default: noexcept], rethrow_exception(ep)[noreturn], make_exception_ptr(e)[noexcept]
+7.	nested_exception으로 예외 핸들러가 호출을 일으킨 예외를 가리킨 exception_ptr과 함께 오류의 지역적 맥락을 전달하기 위해 사용하는 클래스에 대한 기반 클래스로서 사용된다. nested_exception ne{}는 current_exception()에 대한 exception_ptr을 보관한다.(p.s throw_with_nested(e), rethrow_if_nested(e))
+8.	기본 설정은 즉시 프로그램을 종료하는 것으로 get_terminate()와 set_terminate()는 최대한 피하자. noexcept위반의 결과로 terminate()가 호출되면 스택이 부분적으로 풀리지 않을 수 있다는 점을 의미하는 중요한 최적화가 시스템에 허용되기에 직접 customizing하진 말자. 
+	uncaught_exception을 통해 정상종료과 예외종료에 따라 다르게 작동하는 소멸자를 만들 수 있지만, uncaught_exception자체가 최초의 예외가 잡힌 이후의 스택 풀기 도중에도 참이기에 지나치게 모호하여 실용적이진 않다.
+9.	assert는 false일시 cerr에 메시지를 쓰고 abort()한다. 다만 NDEBUG가 정의되어 있으면 아무것도 하지 않는다. 즉, assert()가 항상 평가된다고 가정하지 않는다.
+10.	<system_error>에서는 운영체제와 하위 시스템 구성 요소에서 발생한 오류를 알려주기 위한 프레임워크를 제공(eplit_into_directory_and_name, does_directory_exist..etc)하는데, 오류코드분류기능, 시스템오류코드의 이식성 향상, 오류코드를 예외로 매핑시킨다.(feat. error_code, error_category, error_condition, errc, future_errc, io_errc)
+	오류가 저수준에서 일어날 시 오류코드가 표현하는 오류를 처리하거나 예외로 바꿔야 하는데 그 전에 시스템별로 다른 오류코드, 다른 종류의 오류(error_category)를 가지기에 오류코드를 분류해야한다. error_condition은 error_code보다 작은 정보를 가지기에 필요할때 error_code에서 정보를 추출하는 용도로 사용한다.
+	cat.equivalent(n,ec)로 cat.category==cat고 ec.value==n인지를 확인할 수 있다.(ec는 errorcode) error_category의 종류로는 generic_category(), system_category(), future_category(), iostream_category()가 있다. 정수 오류코드가 시스템별 다른 state를 나타낼 수 있기에 category로 분류, enum에 오류코드를 대응하여 사용한다.
+	system_error는 이용가능한 시스템 고유의 error_code를 갖고 있는데, 표준 라이브러리에 속하지 않는 코드에서 쓰일 수 있다.
+11.	최소하나의 error_condition으로 error_category를 만드는 것을 원하는 error_code들로 enum을 정의하는 것에서 오류코드 매핑이 시작한다. 그 뒤 적절한 카테고리를 만들고, 코드별 메시지 매핑되는 함수를 만들고 사용한다.
+12.	errc오류코드는 <cerno>의 POSIX파생항목과 같은 값을 가지는 enum class errc에 정의된다. 이는 system_category()에 유효하며 POSIX와 유사한 기능을 지원하는 시스템에 한해 generic_category()에서도 유효하다. errc열거자는 errc타입인 반면 POSIX매크로는 정수하는 차이가 있다.
+13.	future_category()의 표준은 enum class future_errc에 broken_promise:1, future_already_retrived, promise_already_satisfied, no_state가 정의돼있다. 수치값은 구현별 정의사항이다.
+14.	iostream_category()의 표준은 enum class io_errc에 stream으로 정의되어 있다.
+15.	예외를 사용할 수 없다면 <system_error>을 사용하자.
+
+	[STL 컨테이너]
+1.	element에 대한 sequence conatiner와 key에 대한 associative container로 구분된다. 또한 원소를 보관할 수 있는 객체 타입을 제공하는데 다른 컨테이너에 대한 특수화된 인터페이스를 갖는 container adaptor(stack, queue, priority_queue)와 컨테이너 기능 대부분을 제공하는 almost container(string, array<T,N>, valarray<T>, biset<N>, vector<bool>)가 있다.
+2.	순서 정렬의 기준은 strict weak ordering을 정의해야하는데, 비재귀성(xx) 반대칭성(xyyx) 추이성(xyz) 동등성의추이성(xy !(xy||yx))을 만족해야한다. 여기서 특별히 ==가 동등성 검사 시 !(cmp(x,y)||cmp)y,x)) 즉 동등성의 추이성을 만족한다면 이를 total order라고 부른다.
+3.	iterator는 random-access itertor, forward iterator등이 있으며 const항목은 constant time에 대한 표기 즉 O(1)을 나타낸다. O(n)+는 관용적으로 amortized linear time으로 부르며 big-O는 asymptotic이기에 복잡성차이를 명확히 보려면 많은 원소를 요구한다. 즉 직접 측정하자.
+4.	container는 멤버 타입의 집합을 정의하는데 value_type, allocator_type, size_type, difference_type, key_type, mapped_type, key_compare, hadher, const_local_iterator등등 중 필요한것을 정의한다. (container의 크기와 용량에 관해선 capacity를 size와 fit하게 만드는 shrink_to_fit()가 있다. iterator무효화 가능성 존재)
+5.	iterator무효화에 대해선 associate conatiner는 erase()시, sequence container는 element의 위치가 바뀌거나 이동되면 무효화된다. 또한 reserve()는 vector는 표준 성장 전략이 너무 효과적이어서 직접 사용할 필요가 사실상 없지만, iterator가 무효화되면 안될 경우 이를 방지하기 위해 직접 사용하기도 한다.
+6.	push_back()은 임시객체를 암시적으로 생성 후 추가하는 반면, emplace_back()은 variadic template을 이용하여 생성에 필요한 인자를 받고, 삽입할 곳 안에서 직접 생성을 하여 복사&이동, 임시객체의 소멸 과정이 생략된다. push_back은 암시적인 생성자만을 호출하지만 emplace_back은 모든 종류의 생성자를 호출할 수 있다.(feat. emplace_hint() 보통의 emplace가 아닌 삽입.., emplace_after)
+7.	vector<vector<vector<double>>>같은 구조보다는 Matrix<2,double>같은 타입을 고려해보는 것이 좋다. 행들이 서로 다른 크기를 가질 수 있는 가능성이 있으며, 오류&테스트 부담도 커지며 오버헤드가 악화되기 때문이다.
+8.	리스트(list<T>, forward_list<T>)연산 중 unique는 인접한 중복 원소를 list에 제거해주며 splice()연산은 원소 값 복사 없이 원소에 대한 반복자를 무효화하지 않는다. splice(p, lst)는 lst원소를 p앞에 삽입하는 것이며, lst는 비워진다.
+9.	associative container는 크게 Ordered associative container(red-black tree)와 Unordered associative container(hash)로 나뉜다. map과 set은 순서에 상관없이 각 키에 대해 고유 항목을 갖는 일반 버전과 각 키에 대해 여러 항목을 갖는 멀티 버전이 존재한다. 연산은 lower_bound(k), upper_bound(k), equal_range(k), emplace_hint(h, args)등이 있다.
+10.	insert, emplace시 반환값은 non-multi의 경우 pair(p,b)가 되며, multi이 경우 iterator값이 된다.
+11.	hash customizing시 C스타일 문자열에 대한 특수화 없이 주소가 해시된다는 것을 유의해야한다. 해시함수 작성하는 쉬운 방법은 표준을 사용하는 것이다. return hash<string>()(r.name) ^ hash<int>()(r.val)
+12.	동일한 해시값을 가진 키는 동일한 버킷 안에 있다고 불리운다. unordered associative container의 load factor은 사용된 용량의 비율로 대부분 70%가 적당한 선택이다. load_factor(), max_load_factor(), max_load_factor(d), rehash(n), reserve(n): rehash(ceil(n/c.max_load_factor())) 등의 부하율 관련 연산이 있다.
+	버킷 인터페이스로 bucket_count(), max_bucket_count(), bucket_size(n), bucket(k)등이 있다. 이들을 통해 해시 함수에 대한 실험을 가능하게 해줄 뿐이지 max_bucket_count()를 index of bucket으로 사용하는 것은 정의되어 있지 않다.
+13.	container adaptor를 만들기 위해 사용되는 기법은 사용자의 요구에 맞춰 클라이언트 인터페이스를 비침습적으로 조정하는데에 있다.
