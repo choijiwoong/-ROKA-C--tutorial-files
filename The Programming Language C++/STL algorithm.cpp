@@ -144,4 +144,29 @@ namespace STL_iterator{
 				return p;
 		return c.end();
 	}
+	
+	//4. function for all callable
+	int round(double x){ return static_cast<int>(floor(x+0.5)); }//1. normal function
+	function<int(double)> f;//function
+	enum class Round_style{ truncate, round };
+	
+	struct Round{//2. callable
+		Round_style s;
+		Round(Round_style ss): s(ss){}
+		int operator()(double x) const{ return static_cast<int>((s==Round_style::round)?(x+0.5):x); };
+	};
+	
+	void t1(){
+		f=round;
+		cout<<f(7.6)<<'\n';//1
+		f=Round(Round_style::truncate);
+		cout<<f(7.6)<<'\n';//2
+		Round_style style=Round_style::round;
+		f=[style](double x){ return static_cast<int>((style==Round_style::round)?x+0.5:x); }//3. lambda
+		cout<<f(7.6)<<'\n';
+		vector<double> v{7.6};
+		f=Round(Round_style::round);//4. callable with vector
+		std::transform(v.begin(), v.end(), v.begin(), f);
+		cout<<v[0]<<'\n';
+	}//8788
 }
