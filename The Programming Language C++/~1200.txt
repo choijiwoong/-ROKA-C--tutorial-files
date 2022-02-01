@@ -1,0 +1,21 @@
+	[문자열]
+1.	<cctype>을 통해 문자 분류 연산, <string> 연관 연산을 가진 문자열, <regex> 정규표현식 매칭, <cstring> C스타일 문자열 등의 지원을 제공한다.
+2.	<cctype>은 isspace(), isxdigit(), isgraph()_isalpha또는 isdigit또는 ispunct들을 지원한다. 또한 문자 타입의 속성은 char_traits에 정의되며, 이는 템플릿의 특수화버전이며, char외에도 char16_t, char32_t, wchar_t 총 4가지의 특수화를 제공한다. 멤버는 모두 static이며, to_char_type, eq_int_type(p.s eq는 대소구분X), compare, move등의 static 함수를 지원한다.
+3.	basic_string은 원소들은 인접해서 저장하는 범용적인 문자열 템플릿으로, 저수준의 시퀀스 입력 연산은 강력한 보장을 제공하는 basic_string을 통해 안전하게 사용할 수 있다. char_traits과 마찬가지로 char, char16_t, char32_t, wchar_t와 같은 표준 문자 타입에 대한 특수화가 존재한다. 다만 이는 기반클래스로 쓰이도록 만들어 진 것이 아니라 진짜 이동 의미 구조를 제공하는 컨테이너같은 개념이다.
+4.	basic_string은 한개의 원소만 받아들이는 생성자를 제공하지 않는다(더군다가 nullptr로 C스타일을 전달하지 말자). 또한 부분 문자열 표기는 [시작,끝)이 아닌, (위치, 길이)로 사용한다. ex string ss2{ss,0,9}_ss의 위치 0부터 9자리. 용량메커니즘은 vector와 동일하다. 또한 c_str()로 const char*로의 명시적인 변환을 제공한다.(암시X)
+5.	문자열 입출력 함수로는 getline()함수를 이용할 수 있는데, 이는 종료문자를 입력 스트림에서 제거하고 문자열에 집어넣지 않기에 단순한 행처리가 가능하다.
+6.	<string>에서 여러 수치값 추출용 수지 변환 함수(stoi, to_string, to_wstring 등)를 제공한다. 다만 sto*함수는 자신의 대상 타입을자신의 이름으로 인코딩하기에 템플릿 매개변수가 될 수 있는 일반화 코드에는 부적합하다. (다르게 말하면, 이름에 따라 타입이 달라지기에 template argument로는 어렵다. 만약 필요하면 to<X>를 사용하자.)
+7.	basic_string에서는 통상적인 STL형 연산, 즉 반복자 집합을 제공한다. 또한 복잡한 assignment()를 제공하여 insert(), append(), erase()의 사용또한 가능하다. replace()는 자신의 호출대상이었던 객체에 대한 참조자를 반환하기에 연산 연결에 사용될 수 있다. find(계열 함수들로 원소 검색또한 지원하며
+	find_first_of(), find_last_not_of() 등의 find_*_of계열함수들로 find와 같은 전체 문자 시퉌스가 아닌, 문자 하나를 찾을 수도 있다. substr()또한 지원하며, 이를 compare()을 이용하여 비교할 수 있다.
+8.	즉, basic_string은 base class용이 아닌 실제 여러 기능을 제공하기에 임의의 타입의 문자열을 만드는데에 이용한다. by specialization
+
+	[정규 표현식]
+1.	regex_match()로 regex expression을 문자열에 매칭, regex_search()로 탐색, regex_replace()로 찾고 대체, regex_iterator()로 일치 혹은 부분 일치 반복, regex_token_iterator()로 일치하지 않는 것에 대해 반복(?), smatch를 통해 regex_search()의 결과 집합을 표현할 수 있다.
+2.	정규 표현식 특수 문자로 . [ { ( \ * + ? | ^ $ 등이 있으며, 패턴은 접미사({n}, {n,m}, *, +, ?)등을 이용하여 반복되게 할 수 있다. 접미사 ?은 선택적의미이기에 패턴 매칭 매커니즘을 lazy, non-greedy로 만든다.
+3.	여러 문자클래스들에 대한 단축표기(\d, \W, \w)가 지원되며, 비표준으로 사용되는 축약(\l_소문자, \u_대문자) 역시 지원한다. 다ㅏㄴ 완벽한 이식성보장을 위해서는 축약 표기보단 alnum, cntrl, lower등의 문자 클래스 이름을 사용하는 것이 좋다. \n, \t등의 특수문자를 제공하며, \b_단어의 첫 번째와 마지막 문자(경계문자), \B_\b가 아님, \i_i번째 sub_match등의 특수문자도 제공한다. 이는 원시 문자열 리터럴R로 대체가능하다.
+4.	팁으로, 부분 패턴을 정의하지 않는 괄호가 필요하다면 (대신 (?:을 사용하여 정규 표현식 엔진이 첫 문자를 저장해야하는 수고를 덜게 해줄 수 있다. (\s|:|,)*(\d*)를 (?:\s|:|,)*(\d*)로 바꿀 수 있다. XML 파싱 시 greedy match규칙을 유의하자.(cpp참고)
+5.	basic_regex로 여러 char, string등 버전을 특수화 할 수 있게끔 되어있으며, regex는 basic_regex<char>의 별칭이다. basic_regex의 멤버 사웃로 icase, nosubs, optimize, ECMAScript(default regex grammer), awk등 여러가지가 있다. assign, move, mark_count, flags, imbue(loc)등의 연산을 지원한다.
+6.	정규표현식의 매칭 결과는 sub_matches의 컨테이너개념의 match_results객체에 취합되며, 이는 하나 이상의 sub_match객체를 포함한다. sub_match<Bi>연산에서 compare이나 matched등을 지원한다. const char*, const wchar_t*등을 담는 4가지의 별칭(cmatch, wcmatch...etc)을 제공한다. 또한 position(), prefix(), postfix() 등 여러 연산집합을 제공한다.
+7.	regex_replace()에서 처리되는 서식화는 format()함수를 이용해서 진행되는데, match_flag_type옵션에 의해 제어된다. out=m.format(out, b,e, flags). 서식화 옵션으로는 format_default(ECMAScript), format_sed(POSIX sed), format_no_copy(일치하는것만 복사), format_first_only(첫번째 등장부분만 대체)가 있다.
+8.	정규 표현식 매칭의 세부 사랑은 match_not_bol, match_not_eol, match_not_bow, match_not_eow, match_any, match_not_null, match_continuous, match_prev_avail의 매칭 옵션을 통해 제어가능하다. 
+9.	길이가 알려전 시퀸스 전체와 일치하는 패턴을 찾으려면 regex_match()를 이용한다.
