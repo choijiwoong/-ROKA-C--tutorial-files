@@ -45,4 +45,19 @@
 	임시버퍼외에도 시퀸스멤버가 초기화돼있다고 가정하는 표준 알고리즘의 즉시적인 대상으로 미초기화 메모리를 사용할 수 없기에 대입대신 초기화를 하는 <memory>의 raw_storage_buffer을 사용할 수 있다. 이 경우들을 제외하곤 사용하지 않는다..
 	
 	[유틸리티]
-1.	
+1.	<chrono>에서 시간상의 두 지점 사이의 시간을 표현하기 위해 duration타입을 제공한다. duration의 period는 clock tick개수를 보관한다. period는 단위체계UNIT이기에 일반적인 =나 +=의 사용은 불가하다. 고로 명시적으로 UNIT을 제공해야만 사칙연산등이 가능하며, duration_cast<D>로 타입을 변환할 수 있다. 또한 <ratio>에서 SI단위를 이용 duration관련 편리한 별칭들을 제공한다.
+2.	time_point는 clock으로 측정되는 주어진 기준 시간 사이에서 어떤 시점을 표현하기 위한 것으로, time_since_epoch()로 저장된 duration을 확인할 수 있다. 마찬가지로 time_point_cast<D>를 이용하여 변환이 가능하다. 시계에 접근하지 않는 단순 scalar time_point연산은 constexpr로 선언될 수 있지만, 필수는 아니다.
+3.	clock 객체의 모든 맴버는 static이며, is_steady, now(), to_time_t(tp), from_time_t(t) 등의 멤버가 존재한다. clock의 종류로는 system_clock, steady_clock(순방향으로 일정하게_, high_resolution_clock이 있다.
+4.	<chrono>의 구현에 사용되는 time traits으로는 zero(), min(), max(), common_type<duration<R1,P1>, duration<R2,P2>>::type등이 있다. common_type을 갖는 조건은 두 time_point가 공통된 clock type을 가져야 한다.
+5.	<ratio>는 rational arthmetic을 제공하므로 컴파일 타임 표현을 제공한다. ratio_add<x,y>, ratio_less<x,y>, ratio_equal<x,y>등 연산들을 제공하며, SI에 대한 양적 표현(ex. yocto, zepto, atto, femto, pico, nano...)등을 제공한다.
+6.	<type_traits>에서 primary type predicate을 제공하는데 is_void<X>, is_member_object_opinter<X>, is_union<X>등이 있다. 이들은 boolean을 반환하는데, 이는 ::value로 접근한다. 만약 boolean값을 바로 사용하고 싶다면 아래와 같은 함수를 재정의하여 사용하면 된다. 다만 이상적으로는 기본 라이브러리를 사용한다.
+	template<typename T>
+	constexpr bool Is_floating_point(){ return std::is_floating_point<T>::value; }
+7.	composite type predicate로는 is_reference<X>, is_scalar<X>, is_compound<X>등이 제공되며, type property predicate로는 is_const<X>, is_volitile<X>, is_trivial<X>, is_standard_layout<X>, is_polymorphic<X>, is_constructible<X, args>등이 제공된다.
+8.	위의 타입 속성 술어함수(type property predicate)들은 사용경우별(Derived..) 접근체크를 수행하지 않지만, 멤버와 프렌드 외부에서의 사용에 대해 기대하는 결과를 제공한다.(그냥 derived같은거빼고 정상작동한다는 소리)
+	is_trivally계열(is_trivally_move_constructible<X>) 함수들은 간단한 연산만으로 실행이 가능한지를 묻는 것으로 최적화에 사용하기도 하며, is_nothrow계열(is_nothrow_desstructible<X>) 함수들도 있다. 또한 type property question으로 alignment_of<X>_alignof<X>, rank<X>_배열이라면 차원의 개수, extent<X,N>_배열이라면 N차원에 있는 원소의 개수 등이 있다.
+9.	type relation으로는 is_same<X,Y>_같은타입인지, is_base_of<X,Y>_X가 Y의 기반클래스인지, is_convertible<X,Y>_암시적으로 변환될 수 있는지 등이 있다.
+10.	타 타입으로 어떤 타입을 생성하기 위한 타입함수로 const&volatile(remove_const<X>), 참조자(remove_reference<X>), 부호(make_unsigned<X>), 배열(remove_extent<X>), 포인터(remove_pointer), 정렬(aligned_storage<n>), 기타 변환(common_type<X>)등을 지원한다. declval<T>는 T에 대한 우변 값을 반환하며 이 값은 절대 사용하지 않는다.
+11.	소규모 유틸리티로 move()_우변값 캐스트(이동되어 빈객체가능성), forward()_우변값으로 우변값생성(빈객체가능성X_perfect forwarding에 사용), swap()이 있다.
+12. <utility>의 부분 네임스페이스 rel_ops에서 임의의 타입에 대한 관계연산자(!=, >, <=, >=등)을 찾을 수 있다. using namespace std::rel_ops를 통해 활성화가 가능하다. 다만 네임스페이스가 어지럽혀져 Argument Dependent Lookup에서 부적절한 타입이 적용될 수 있기에 지역 유효범위에서 using 지시자를 사용하는 것이 바람직하다.
+13.	<typeindex>에서 type_index의 비교,해싱을 지원한다. type_index는 이를 가능하게 하기 위해 type_info에서 생성된다.
