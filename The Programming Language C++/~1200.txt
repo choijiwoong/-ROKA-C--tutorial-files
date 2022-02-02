@@ -18,4 +18,26 @@
 6.	정규표현식의 매칭 결과는 sub_matches의 컨테이너개념의 match_results객체에 취합되며, 이는 하나 이상의 sub_match객체를 포함한다. sub_match<Bi>연산에서 compare이나 matched등을 지원한다. const char*, const wchar_t*등을 담는 4가지의 별칭(cmatch, wcmatch...etc)을 제공한다. 또한 position(), prefix(), postfix() 등 여러 연산집합을 제공한다.
 7.	regex_replace()에서 처리되는 서식화는 format()함수를 이용해서 진행되는데, match_flag_type옵션에 의해 제어된다. out=m.format(out, b,e, flags). 서식화 옵션으로는 format_default(ECMAScript), format_sed(POSIX sed), format_no_copy(일치하는것만 복사), format_first_only(첫번째 등장부분만 대체)가 있다.
 8.	정규 표현식 매칭의 세부 사랑은 match_not_bol, match_not_eol, match_not_bow, match_not_eow, match_any, match_not_null, match_continuous, match_prev_avail의 매칭 옵션을 통해 제어가능하다. 
-9.	길이가 알려전 시퀸스 전체와 일치하는 패턴을 찾으려면 regex_match()를 이용한다.
+9.	정규표현식 반복자의 별칭집합으로 cregex_iterator, wcregex_iterator, sregex_iterator, wsregex_iterator등을 제공한다. 또한 매칭된 match_results의 sub_match에 대해 반복을 가능케하는 regex_iterator의 어댑터로 regex_token_iterator를 제공한다. 마찬가지의 통상적인 별칭 집합을 제공한다.
+10.	regex 구현자에게 필요한 방식대로 문자타입, 문자열 타입, 로케일 사이의 대응관계를 표시하는 regex_traits을 제공하며 char, wchar_t의 특수화를 제공한다.
+	
+	[입출력 스트림]
+1.	스트림 버퍼를 이용하게하는 스트림 입출력 시스템의 주요 구성 요소로는 ios_base, basic_ios<>, basic_iostream<>, basic_streambuf<>, locale 등이 있다(basic_iostream은 복사연산을 제공하지 않는다_고로 나머지 하위도 복사X) 스트림 타입과 스트림 객체에 대한 forward declaration은 <iosfwd>에서 제공한다.
+2.	입출력 스트림 기능은 클래스 계층 구조로 구성되며, ios_base, basic_ios<>, basic_istream<>, basic_ostream<>, basic_istringstream<>, basic_iostream<>, basic_ostringstream<>, basic_ifstream<>, basic_ofstream<>, basic_fstream<>, basic_stringstream<>으로 구성된다.
+3.	fstream은 rdbuf, is_open등의 연산이 가능하며, 복사연산을 갖지 않기에 참조자나 포인터를 사용하거나 streambuf를 조작하는 방법이 있으며, char, wchar_t, 등의 별칭이 존재한다.(문자열 스트림의 경우 basic_ios의 proetected가상함수 몇가지를 재정의한다)
+4.	ios_base는 하나의파일을 여러 모드중 하나로 열 수 있다. stream mode로는 app, atr, binary, in, out, truc가 있으며, 정확한 결과는 운영체제에 따라 달라질 수 있으며 때에 따라 bad()상태가 될 수있다. 오류 처리에 사용되는 스트림 상태로는 good(), eof(), fail(), bad()가 있으며 good()이외의 상태일 시 연산이 아무런 영향을 미치지 못한다. 예외 제어에는 exceptions를 사용한다. ex) catch(ios_base::badbit)
+5.	stringstream은 move, str, swap등의 연산을 지원하며, 마찬가지로 char, wchar_t의 별칭이 <stream>에 정의되어 있다. stringstream은 operator<<로 출력하는 것이 불가능하기에 반드시 str()을 사용하여 cout해야한다. 
+6.	basic_istream 기반클래스로 사용되기 위한 것으로, 사용자는 구현 세부 사항인 sentry클래스에 우선적으로 실행되어야하는 코드를 생성자로 넣으면 된다.(sentry 소멸시 정리함) 참고로 인자중 하나인 noskipws는 공백을 건너뛰지 않게 해주는 flag이다. 입력연산은 virtual이 아니지만 간단한 기법을 이용하여 실질적으로 모든 타입의 객체를 읽을 수 있다.
+7.	in>>x나 getline(in,s)와 같이 서식화된 입력과 달리 저수준의 서식화되지 않은 입력을 통해 미세 조정이나 잠재적인 성능 개선에 사용되며, get()_getline과 달리 종료자 제거X, getline(p,n), gcount(), unget(), ignore(), read(p,n), peek(), readsome(), sync(), tellg()등이 있다. 당연히 특별한 이유가 없다면 서식화된 입력을 사용하자.
+8.	ostream은 서삭화된 출력, 서식화되지 않은 출력, streambuf에 대한 연산 등을 제공한다(flush, write, put, tellp, seekp...etc) 사용자 정의타입을 위하여 <<연산자를 만들고 싶다면, 간단한 오버로딩으로 가능하지만, <<을 완전히 범용적으로 사용하고자 한다면 basic_string<C, Tr>에 대해 정의해야한다.
+	ostream의 멤버는 바로 사용을 위한 것이므로 virtual이 아니다. 또한 출력오버로딩을 위해선 외부에서 정의하므로 virtual을 달 수 없어 인라인화를 사용한다. 자세한 예시는 Cpp를 참고하자. 사실 잘 이해못했다. 검색해보니 대충 객체에 상태에 따라 다른 방식을 사용하는거.
+9.	manipulator을 이용하여 cout<<pf을 pf(cout)꼴로 사용할 수 있다. 여기서 pf 즉 함수포인터가 조작자이다. 
+10.	basic_ios클래스는 스트림과 버퍼 사이의 매핑, 서식화 옵션, locale의 활용, 오류 처리, 다른 스트림과 stdio에 대한 연결 등 스트림의 상태를 관리한다. ios_base는 템플릿 인자에 의존하지 않는 정보를 보관한다. ios_base의 구현병 정의 타입은 모두 bimask type으로 비트 단위 논리 연산을 지원한다. 이 클래스는 iostream의 stdio에 대한 연결을 제어한다.
+	ios_base는 sync_with_stdio()연산을 지원하며, 프로그램 실행 시 첫번째 iostream연산 이전에 sync_with_stdio(true) 호출하면 iostream과 stdio 입출력 연산이 버퍼를 공유하게끔 보장한다. 또한 첫 번째 스트림 입출력 연산 이전에 sync_with_stdio(false)호출 시 버퍼 공유가 금지되며, 이는 일부 상황에서 입출력 성능을 대폭 향상시킨다.
+11.	ios_base는 마찬가지로 복사나 이동 연산을 갖지 않으며, badbit, goodbit와 같은 iostate멤버 상수들을 익기 위해서 basic_ios에서 openmode멤버 상수인 app, ate, binary(문자가 바이트로 매핑), in, trunc등을 제공한다.	또한 방향 seekdir멤버 상수로 beg, cur, end가 있다.
+12.	basic_ios연산을 요약하면 rdstate, clear, setstate, good, eof, exceptions, tie(순서보장), rdbuf, copyfmt, fill, imbue, narrow, widen, init, set_rdbuf, move, swap등이 있다. tie는 연결됀 스트림의 출력이 연결됀 스트림의 입력보다 먼저 등장하게 보장 하는데에 사용된다.
+13.	ios_base연산으로는 xalloc(), iword(), pword(), register_callback()이 있다. 사람들이 스트림의 상태 정보를 추가하고싶을 때 사용하며, xalloc이 반환하는 값은 iword와 pword에 의해 접근할 수 있는 위치의 쌍을 식별한다. 또한 스트램 상태변경시 사용자나구현자에 알릴 목적으로 register_callback을 이용하여 등록된 함수를 호출시킬 수 있다.
+14.	스트림 입출력의 서식은 객체타입, 스트림 상태, 서식 상태, 로케일 정보, 명시적 연산의 조합에 의해 제어되며 <ios>의 ios_base의 멤버로 구현된 bitmask type fmtflags의 서식화 상수집합(boolalpha, dec, hex, scientific, internal, showbase, showpoint, unitbuf, adjustfield...etc)을 정의되어있다.
+	iostream의 서식 상태(fmtflags)는 flags(), setf(), unsetf(), precision(), width()을 통해 IO가 가능하다. ios_base의 locale연산으로는 imnue(), getloc()이 있다.
+15.	<ios>, <istream>, <ostream>, <iomanip>에서 여러 입출력 조작자(boolalpha, defaultfloat, skipws, endl, ends, flush, resetiosflags, setbase, setfill, get_money, ws 등)를 제공한다. 이들은 첫번째 스트림 피연산자 s에 대한 참조자를 반환하기에 연쇄가 가능하다. (기존의 tool들을 이용하여 사용자 정의 조작자를 만들 수 있다.)
+16.	
