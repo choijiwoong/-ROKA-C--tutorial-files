@@ -83,12 +83,12 @@ namespace {
 	string line;
 	int lineno=0;
 	
-	regex header{R"(^[\w]+(\t[\w]+)*$)"};
+	regex header{R"(^[\w]+(\t[\w]+)*$)"};//header's pattern
 	regex row{R"(^([\w]+)(\t\d+)(\t\d+)(\t\d+)$)"};
 	
 	if(getline(in,line)){
 		smatch matches;
-		if(!regex_match(line, matches, header))
+		if(!regex_match(line, matches, header))//regex_match to header first
 			cerr<"no header\n";
 	}
 	
@@ -98,7 +98,7 @@ namespace {
 		++lineno;
 		smatch matches;
 		
-		if(!regex_match(line, matches, row))
+		if(!regex_match(line, matches, row))//check row
 			cerr<<"bad line: "<<lineno<<'\n';
 		
 		int curr_boy=stoi(matches[2]);
@@ -117,4 +117,47 @@ namespace {
 	}
 	cerr<<"didn't find total line\n";
 	return 1;
+	
+	//7. structure of regex_iterator
+	template<typename Bi, class C=typename iterator_traits<Bi>::value_type, class Tr=typename regex_traits<C>::type>//Bi, Bi's value_type, regex_type
+	class regex_iterator{
+		public:
+			using regex_type=basic_regex<C,Tr>;
+			using value_type=match_results<Bi>;
+			using difference_type=ptrdiff_t;
+			using pointer=const value_type*;
+			using reference=const value_type&;
+			using iterator_category=forward_iterator_tag;
+			//...
+	};
+	//regex_token_iterator; adaptor of regex_iterator
+	template<typename Bi, class C=typename iterator_traits<Bi>::value_type, class Tr=typename regex_traits<C>::type>
+	class regex_token_iterator{
+		public:
+			using regex_type=basic_regex<C, Tr>;
+			using value_type=sub_match<Bi>;
+			using difference_type=ptrdiff_t;
+			using pointer=const value_type*;
+			using reference=const value_type&;
+			using iterator_category=forward_iterator_tag;
+			//...
+	};
+	//use
+	void use(){
+		string input{"aa::bb cc::dd ee::ff"};
+		regex pat{R"((\w+)([[:punct:]]+)(\w+)\s*)"};
+		sregex_token_iterator end{};
+		for(sregex_token_iterator p{input.begin(), input.end(), pat, {1,3}}; p!=end; ++p)//iterator for 1,2,3 group
+			cout<<*p<<'\n';
+	}
+	//regex_traits
+	template<typename C>
+	struct regex_traits{
+		public:
+			using char_type=C;
+			using string_type=basic_string<char_type>;
+			using lcoal_type=locale;
+			using char_class_type=;//bitmask type seperatly defined
+			//...
+	};
 }
