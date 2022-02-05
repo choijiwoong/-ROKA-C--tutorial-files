@@ -190,6 +190,142 @@ namespace io{
 	};
 	using event_callback=void (*)(event, ios_base&, int index);
 	
-	//12. user designed manupulator
+	//12. user designed manupulator_something for printing double number as defined format without effect to stream
+	class Form;
+	struct Bound_form{
+		const Form& f;
+		double val;
+	};
 	
+	class Form{
+		friend ostream& operator<<(ostream&, const Bound_form&);
+		int prc, wdt, fmt;
+		
+		public:
+			explicit Form(int p=6, ios_base::fmtflags f=0, int w=0): prc{p}, fmt{f}, wdt{w}{}//precision, fotmat, width
+			Bound_form Form::operator()(double d) const{
+				return Bound_form{*this, d};
+			}
+			Form& scientific(){//setting formats
+				fmt=ios_base::scientific; 
+				return *this;
+			}
+			Form& fixed(){
+				fmt=ios_base::fixed;
+				return *this;
+			}
+			Form& general(){
+				fmt=0;
+				return *this;
+			}
+			Form& uppercase();
+			Form& lowercase();
+			Form& precision(int p){//setting private
+				prc=p;
+				return *this;
+			}
+			Form& width(int w){
+				wdt=w;
+				return *this;
+			}
+			Form& fill(char);
+			Form& plus(bool b=true);
+			Form& trailing_zeros(bool b=true);
+			//...
+	};
+	
+	ostream& operator<<(ostream& os, const Bound_form& bf){
+		ostringstream s;
+		s.precision(bf.f.prc);//access private member thanks to friend
+		s.setf(bf.f.fmt, ios_base::floatfield);
+		s<<bf.val;
+		//set output string stream by bf
+		return os<<s.str();//return str to os
+	}
+	
+	//13. stream iterator
+	template<typename T, typename C=char, typename Tr=char_traits<C>, typename Distance=ptrdiff_t>
+	class istream_iterator: public iterator<input_iterator_tag, T, Distance const T*, const T&>{
+		using char_type=C;
+		using traits_type=Tr;
+		using istream_type=basic_istream<C,Tr>;
+		//...
+	};
+	
+	template<typename T, typename C=char, typename Tr=char_traits<C>>
+	class ostream_iterator: public iterator<output_iterator_tag, void, void, void, void>{
+		using char_type=C;
+		using traits_type=Tr;
+		using ostream_type=basic_ostream<C,Tr>;
+		//...
+	};
+	//use
+	copy(istream_iterator<double>{cin}, istream_iterator<double, char>{}, ostream_iterator<double>{cout,";\n"});//1; 2; 3;
+	
+	//14. bufferring <streambuf>
+	template<typename C, typename Tr=char_traits<C>>
+	class basic_streambuf{
+		public:
+			using char_type=C;
+			using int_type=typename Tr::int_type;//char->int
+			using pos_type=typename Tr::pos_type;//position type on buffer
+			using off_type=typename Tr::off_type;//offset type...
+			using traits_type=Tr;
+			//...
+			virtual ~basic_streambuf();
+	};
+	
+	//15. input & output stream, buffer
+	template<typename C, typename Tr=char_traits<C>>
+	class basic_ostream: virtual public basic_ios<C, Tr>{
+		public:
+			//...
+			explicit basic_ostream(basic_streambuf<C,Tr>& b);
+			pos_type tellp();//get current position
+			basic_ostream& seekp(pos_type);
+			basic_ostream& seekp(off_type, ios_base::seekdir);
+			basic_ostream& flush();//extract content to real target with erase
+		
+			basic_ostream& operator<<(basic_streambuf<C,Tr>* b);
+	};
+	
+	template<typename C, typename Tr=char_tratis<C>>
+	class basic_istream: virtual public basic_ios<C,Tr>>{//provide operations that handle it's streambuf directly
+		public:
+			//...
+			explicit basic_istream(basic_streambuf<C,Tr>* b);
+			pos_type tellg();
+			basic_istream& seekg(pos_type);
+			basic_istream& seekg(off_type, ios_base::seekdir);
+			
+			basic_istream& putback(C c);
+			basic_istream& unget();
+			int_type peek();
+			int sync();
+			basic_istream& operator>>(basic_streambuf<C,Tr>* b);
+			basic_istream& get(basic_streambuf<C,Tr>& b, C t=Tr::newline());
+			streamsize readsome(C* p, streamsize n);
+	};
+	
+	//16. istreambuf_iterator & ostreambuf_iterator
+	template<typename C, typename Tr=char_traits<C>>
+	class istreambuf_iterator: public iterator<input_iterator_tag, C, typename Tr::offtype, /*undefined*/, C>{
+		public:
+			using char_type=C;
+			using traits_type=Tr;
+			using int_type=typename Tr::int_type;
+			using streambuf_type=basic_streambuf<C,Tr>;
+			using istream_type=basic_istream<C,Tr>;
+			//...
+	};
+	
+	template<typename C, typename Tr=char_traits<C>>
+	class ostreambuf_iterator: public iterator<output_iterator_tag, void, void, void, void>{
+		public:
+			using char_type=C;
+			using traits_type=Tr;
+			using streambuf_type=basic_streambuf<C,Tr>;
+			using ostream_type=basic_ostream<C,Tr>;
+			//...
+	};
 }
