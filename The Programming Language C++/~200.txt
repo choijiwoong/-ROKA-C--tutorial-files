@@ -1,150 +1,36 @@
 	[C++ 둘러보기: 추상화 메커니즘]
-5.	클래스 계층 구조를 사용하므로써 얻게되는 두 종류의 이점은 Interface Inheritance_기반클래스를 파생 클래스의 인터페이스 역활을 하게 하는 것과 Implementation Inheritance_파생 클래스의 구현을 간단하게 하는 것이 있다.
-6.	객체 반환 시 Based클래스 혹은 인터페이스 등으로 받을 시 그 반환값을 사용하는 user입장에서는 제대로 된 delete를 수행하지 못할 수도 있다. 즉 user에서 직접 real type을 확인하여 따로 delete처리를 해야한다.
-	파생 클래스에서 해제돼야하는 자원을 획득했을 가능성이 높기에 위 사항은 중요하다
-	 고로 위와같은 상황을 방지하기 위해 unique_ptr과 같은 smart_ptr을 반환하고 컨테이너 등에 저장하여 사용하는 것이다. 
-	고로 이 unique_ptr버전을 user가 컨테이너를 이용하여 사용하기 위해서는 vector<unique_ptr<Shape>>와 같이 해당 객체를 unique_ptr로 감싼 데이터를 처리하게하는 버전의 함수가 필요하다. not only vector<Shape>
-7.	복사 생성자와 복사 대입의 모양은 아래와 같다. 복사생성자는 말 그대로 생성자이고 복사 대입은 =연산자의 오버로딩으로 정의한다.
-	Vector(const Vector& a);
-	Vector& operator=(const Vector& a);
-8.	이동 생성자와 이동 대입의 모양은 아래와 같다. 중요한 것은 그것의 인자로부터 값을 제거하는 것이다.(정말 이동이라는 말임) 유효범위밖으로 간단하면서 적은비용으로 이동하기 위해 사용한다.
-	Vector(Vector&& a);
-	Vector& operator=(Vector&& a);
-9.	클래스 계층 구조 내에서 이동과 복사를 사용하게 되면 기반 클래스의 포인터의 경우 파생 클래스가 어떤 멤버를 갖고 있는지 모르기에 복사하는 방법등을 알 수 없다.
-	고로 그러한 연산이 일어나지 않게 Based클래스에서 delete를 통한 복사&이동 연산의 억제를 통해 방지할 수 있다.
-	 만약 클래스 계층 구조 내에서 복사가 필요하다면 clone함수를 작성하면 된다.
-10.	반환값이 const인 것과 함수가 const인 것을 햇갈려하지 말자.
-	const T& Vector<T>::operator[](int i) const;
-11.	range-based loop는 begin()과 end()의 정의를 통해 사용할 수 있다.
+6.	객체 반환 시 Based클래스 혹은 인터페이스 등으로 받을 시 그 반환값을 사용하는 user입장에서는 제대로 된 delete(파생클래스 추가할당가능성)를 수행하지 못할 수도 있다. 즉 user에서 직접 real type을 확인하여 따로 delete처리를 해야한다.
+8.	이동 생성자와 이동 대입에서 중요한 것은 그것의 인자로부터 값을 제거하는 것이다.(정말 이동이라는 말임)
+9.	클래스 계층 구조 내에서 이동과 복사를 사용하게 되면 기반 클래스의 포인터의 경우 파생 클래스가 어떤 멤버를 갖고 있는지 모르기에 복사하는 방법등을 알 수 없다. 고로 복사&이동연산을 delete하거나 clone을 작성하자.
 12.	함수객체(정적 객체_policy object)는 inline화에 용이하다.
-13.	람다 표현식에서의 capture list는 [&x], [=x], [], [&], [=]등 여러 간편한 캡쳐가 가능하다. 
-	순서대로 단순한 x의 캡쳐, x의 사본 전달, 아무것도 캡쳐하지 않음, 모든 참조자를 캡쳐, 모든 지역이름들을 캡쳐이다.
-14.	Variadic template은 타입체크가 번거롭다는 것이 단점이다.
-15.	별칭을 사용하면 기본적으로 이식성이 높아지며, 다른데서 지정한 타입을 사용하는곳에서 아래와 같이 재정의하는 것은 상당히 좋은 사용이다.
-	template<typename C>
-	using Value_type=typename C::value_type//C namespace를 template argument로 가져와 그 namespace(클래스도 namespace)의 항목을 재정의하여 ::없이 편리하게 사용한다.
+13.	람다 표현식에서의 capture list는 [&x], [=x], [], [&], [=]등 여러 간편한 캡쳐가 가능하다.
 
 	[4. C++ 둘러보기: 컨테이너와 알고리즘]
-1.	C++의 가비지 컬렉터는 명시적으로 설치되고 활성화되지 않으면 실행되지 않는다. 이를 사용하기 위해 ABI(Application Binary Interface)를 제공하는데 아래와 같다.
-	void declare_reachable(void* p);//p가 가리키는 객체들은 collect되지 않게 한다.
-	template<typename T>
-		T* undeclare_reachable(T* p);//declare_reachable()의 실행을 취소한다.
-	void declare_no_pointers(char* p, size_t n);//p[0:n]은 포인터를 보관하지 않는다(불필요한 collect방지)
-	void undeclare_no_pointers(char* p, size_t n);//declare_no_pointers()의 실행을 취소한다.
-	 위장 포인터들은 비트 패턴이 잘못된 타입으로 메모리에 저장돼있더라도 제대로 정렬되어있는 경우에 꼼꼼한 가비지 컬렉터에 의해 발견될 수 있고 이를 traceable이라고 부른다.
-2.	using namespace std와 같이 어떤 네임스페이스의 전부를 전역 네임스페이스로 옮기는 것은 일반적으로 좋지 않다.
+1.	C++의 가비지 컬렉터는 명시적으로 설치되고 활성화되지 않으면 실행되지 않는다. 이를 사용하기 위해 ABI(Application Binary Interface)를 제공한다: declare_reachable(접근가능하니까 collect하지마), declare_no_pointers(여긴 포인터 보관 안해)(feat. traceable)
 3.	출력(cout)의 기본 설정상 공백문자는 읽기를 종료시키는데 반해 getline()함수를 이용하면 \n을 기준으로 읽어들일 수 있다.
-4.	기본적인 출력연산자의 오버로딩
-	ostream& operator<<(ostream& os, const Entry& e){ return os<<"{\""<<e.first<<"\", "<<e.second<<"}"; }
-	 입력스트림은 예시가 너무 좋아 기록해두겠다...요약실패..
-	istream& operator>>(istream& is, Entry& s){//is의 { "name", number }을 entry로
-		char c, c2;
-		if(is>>c && c=='{' && is>>c2 && c2=='"'){
-			string name;
-			while(is.get(c) && c!='"')
-				name+=c;//add name until "
-			if(is>>c && c!='"'){//"이 아닌 number라면("name"일 가능성 ck)
-				int number=0;
-				if(is>>number>>c && c=='}'){숫자를 number에 저장하고 그 뒤에가 }인지를 ck.
-					e={name, number};//assign to argument entry
-					return is;//return istream
-				}
-			}
-		}
-		is.setstate(ios_base::failbit);//if read fail, set failbit to istream.s
-		return is;
-	}
-5.	표준 라이브러리 Vector는 범위체크를 보장하지 않기에 []연산자를 .at을 사용하게끔 오버로딩하여 사용하면 편리하다.
-	마찬가지로 맵같은 자료구조에서도 []대신 find(), insert()를 사용하면 편리하다.
-6.	unordered_map(중복이 가능한거지 정렬no가 아님)같은 경우 hashed lookup을 이용하기에 탐색이 빠르다. map은 O(log(n)), unordered_map은 O(1). 균형이진트리로 구현된다.
-	순서없는 컨테이너는 하나의 키를 이용한 검색에 최적화되어 있다.
+4.	입력스트림오버로딩 시 format을 정확히 체크하고 parsing한 뒤 format과 다른 값이 입력되었을때는 setstate()를 이용하여 실패를 설정한 뒤 스트림을 리턴한다. if condition안에서 >>으로 넣는 것도 좋은 방법이다. ex) is>>number>>c(is값을 number에, 다음 is값을 c에)
+5.	표준 라이브러리 Vector는 범위체크를 보장하지 않기에 []연산자를 .at을 사용하게끔 오버로딩하여 사용하면 편리하다. 맵과 같은 다른 자료구조도 마찬가지다.
+6.	unordered_map(중복이 가능한 것일 뿐 균형이진트리 정렬되어있음)같은 경우 hashed lookup을 이용하기에 탐색이 빠르다. 순서없는 컨테이너는 하나의 키를 이용한 검색에 최적화되어 있다.
 7.	unique_copy(vec.begin(), vec.end(), back_inserter(res))를 통해 동일한 개수를 갖지않는 두 컨테이너를 copy할 수 있다. back_inserter()는 삽입 반복자로 그 외에 inserter(), front_inserter()이 있다.
-8.	find(s.begin(), s.end(), c)를 통해 해당 원소에 해당하는 컨테이너의 반복자를 얻을 수 있다.
-9.	타 namespace에 iterator를 정의하고 해당 iterator를 별칭을 이용하여 사용하다면 iterator의 구현 세부사항을 은닉할 수 있다!
-	template<typename T>
-	using Iterator=typename T::iterator;
-10.	스트림 반복자를 이용하여 표준 출력에 정규적인 메시지를 써넣는 다른방법을 사용할 수 있다.
-	ostream_iterator<string> oo{cout};
-	*oo="Hello, ";//count<<"Hello, "
-	++oo;
-	*oo="word!\n";//cout<<"world!\n"
 11.	굉장히 특이한 코드
-	set<string> b{istream_iterator<string>{is}, istream_iterator<string>{});//입력을 읽어들여
+	set<string> b{istream_iterator<string>{is}, istream_iterator<string>{});//입력을 읽어들여_range constructor
 	copy(b.begin(), b.end(), ostream_iterator<string>{os, "\n"};//출력에 복사한다.
 12.	알고리즘은 특정한 문제의 집합을 해결하기 위해 순서대로 연산을 제공하는 한정된 규칙 집합으로서 한정성(Finiteness), 명확성(Definiteness), 입력(Input), 출력(Output), 유효성(Effectiveness) 총 5가지의 중요한 특성을 가지고 있다.
-	ex) p=merge(b1, e2, b2, e2, out};
-13.	using 지시자를 정 사용하고 싶으면 using 지시자를 필요로하는 전체 범위를 또다른 Extra namespace로 묶어 사용하자. 충돌을 방지하기 위해.
 
 	[5. C++ 둘러보기: 병행성과 유틸리티]
-1.	가장 좋은 소멸방법은 아예 포인터를 사용하지 않거나 new를 사용하지 않는 것이다. 만약 사용할 경우 smart_ptr을 사용하자. shared_ptr은 메모리 관리 객체를 소멸자 기반으로 자원 관리하는 방식으로 일종의 가비지 컬렉션을 제공하는 셈과 동일하다.
-2.	threads, mutex, lock, packaged_task, futures들은 운영체제가 제공하는 기능을 기반으로 구축되어 있기 떄문에 다른 것들에 비해 성능저하를 유발하지 않는다.
-3.	병행해서 수행될 수 있는 계산을 태스크(task)라고 부르며 thread는 프로그램에 들어있는 태스크를 시스템 수준으로 표현한 것이다. 태스크는 함수 아니면 함수객체이다. callable
-	한 프로그램의 스레드는 단일 주소공간을 공유한다 unlike 프로세스.
-	 서로 통신해야하는 경우를 제외하고는 태스크를 완전히 분리시켜야 한다.(독립적으로) 즉, 스레드보다는 병행 태스크의 관점에서 생각한다.
-4.	dead lock교착상태를 막는 간단한 방법
-	unique_lock<mutex> lck1{m1, defer_lock};//defer_lock_아직 mutex획득을 시도하지 말라
-	unique_lock<mutex> lck2{m2, defer_lock};
-	unique_lock<mutex> lck3{m3, defer_lock};
-	lock(lck1, lck2, lck3);//한번에 lock 획득
-5.	간단한 메시지를 기다리고 처리하는 consumer 
-	void consumer(){
-		while(true){
-			unique_lock<mutex> lck{mmutex};//get mutex
-			mcond.wait(lck);//unlock lck, wait for notify
-							//if notify, lock lck
-			auto m=mqueue.front();//get message
-			mqueue.pop();
-			lck.unlock();//unlock
-			//process...
-		}
-	}
-6.	future & promise는 별도의 스레드에서 생성된 태스크의 값을 반환_명시적 lock없이 가능하다.
-	packaged_task는 태스크를 시작하고 결과를 반환하기 위한 메커니즘의 연결에 도움_태스크의 반환 값이나 예외를 promise에 넣는 래퍼 코드를 제공하여 get_future을 호출하면 promise에 대응되는 future을 준다.
-	async()는 함수 호출과 유사한 방식으로 태스크를 시작한다_비동기적으로 실행될 가능성이 있는 태스크의 시작(잠금을 필요로 하는 자원을 공유하는 태스크에서는 사용하면 안된다.)
-7.	duration_cast<miliseconds>(t1-t0)과 같이 duration_cast로 단위를 변경할수 있다.
+2.	threads, mutex, lock, packaged_task, futures들은 운영체제가 제공하는 기능을 기반으로 구축되어 있기 때문에 다른 것들에 비해 성능저하를 유발하지 않는다.
+3.	병행해서 수행될 수 있는 계산을 태스크(task_주로 callable)라고 부르며 thread는 프로그램에 들어있는 태스크를 시스템 수준으로 표현한 것이다. 한 프로그램의 스레드는 단일 주소공간을 공유한다 unlike 프로세스. 서로 통신해야하는 경우를 제외하고는 태스크를 독립적으로 분리시켜야 한다(feat. 병행태스크)
+4.	dead lock교착상태를 막는 간단한 방법으로 한번에 lock을 획득하는 방법이 있다.
+6.	async()는 thread launcher로 std::future<void> a = std::async(std::launch::async, for_print, 'a')처럼 사용한다. for_print('a')를 실행. promise-future보다 저수준
 9.	Iterator_traits는 어떤 종류의 반복자가 지원되는지 체크할 수 있게 해준다. random_access_iterator_tag, forward_iterator_tag on sort_helper(this way is called as tag dispatch), Value_type, Iterator_category<Iter>
-	template<typename C>//Value_type의 구조
-		using Value_type=typename C::value_type;
-	
-	template<typename C>
-	void sort(C& c){
-		using Iter=Iterator_type<C>;
-		sort_helper(c.begin(), c.end(), Iterator_category<Iter>{});
-	}
-10.	여러 타입 술어 함수들<type_traits> is_class, is_pod, is_literal, is_virtual_destructor, is_base_of, is_literal_type. 주로 static_assert와 함꼐 사용.
-11. auto pp=make_pait(v.begin(), 2);로 type명시 없이 쉽게 pair을 만들 수 있다. auto t=make_tuple(string{"Herring"}, 10, 1.23);
-12.	regex의 대표적인 사용은 아래와 같다.
-	int lineno=0;
-	for(string line; getline(cin, line);){//use line as buffer
-		++lineno;
-		smatch matches;//for matched string
-		if(regex_search(line, matches, pat))//find pat in line
-			cout<<lineno<<": "<<matches[0]<<'\n';
-	}
-13.	난수 생성기는 난수or의사난수의 시퀸스를 생성하는 engine, 수학적 분포로 매칭하는 distribution으로 구성된다.
-	using my_engine=default_random_engine;
-	using my_distribution=uniform_int_distribution<>;
-	
-	my_engine re{};
-	my_distrubution one_to_six{1, 6};
-	auto die=bind(one_to_six, re);//make maker. connect engine to distribution
-	
-	int x=die();
-	혹은 
-	auto die=bind(uniform_int_distribution<>{1, 6}, defulat_random_engine{});//without using
-14.	valarray는 다차원 계산의 구현에 도움이 되는 stride access를 제공한다. (모든 요소들에 일관된 operate 적용)
+	using Iter=Iterator_type<C>;
+	sort_helper(c.begin(), c.end(), Iterator_category<Iter>{});
 
 	[6. 타입과 선언]
-1.	운영체제의 지원을 받은 구현 환경에서는 모든 표준 라이브러리 기능이 포함되지만 자입적 구현 헤더(cstddef, cstdlib, new, typeinfo, type_traits)같은 것들은 
-	가장 최소한의 운영체제 지원만으로 실행되는 코드를 위한 것으로 하드웨어와 밀접한 프로그램을 위한 예외시 사용할 비표준적인 옵션을 제공한다.
+1.	운영체제의 지원을 받은 구현 환경에서는 모든 표준 라이브러리 기능이 포함되지만, 자립적 구현 헤더(cstddef, cstdlib, new, typeinfo, type_traits)는 최소한의 운영체제 지원만으로 실행되게 한것으로 하드웨어와 밀접한 프로그램을 위한 예외시 사용할 비표준적인 옵션을 제공한다.
 2.	산술타입(feat. wchar_t, char16_t, char32_t), 기본 제공 타입(포인터, 배열, 레퍼런스), 사용자 정의 타입
-3.	짧은 표기법으로 u'\uXXXX'와 U'\U0000XXXX'이 동일하지만, 가독성을 위해 8진수표기시 숫자 3개, 16진수는 숫자 2개사용하자. (일반적인0은 8진수이다)
-	char v1[]="a\xah\129";//6 chars: 'a', '\xa', 'h', '\12', '9', '\0'
-	char v2[]="a\xad\0127";//5 chars: 'a', 'xad', '\012', '7', '\0'
 4.	어떤 타입을 unsigned로 바꾸어 효율성을 높이려는 사고는 암시적 변환 규칙에 의해 대부분 깨진다.
 5.	통합 정수 리터럴에서 접미사들의 조합이 허용되기에 0LU는 unsigned long이다. 접미사는 32비트 컴퓨터와 16비트 컴퓨터에서의 타입을 통일하기 위해 사용한다.
-6.	<limits>내의 함수는 런타임 오버헤드가 없어야하며 상수 표현식을 필요로 하기에 constexpr이다.(타입 범위)
-	<cstddef>에서는 표준라이브러리 선언과 사용자 코드 양쪽에서 매우 광범위하게 활용되는 별칭이 정의되기에 부호있는 정수타입 ptrdiff_t가 정의되어 있다. 이는 요소의 개수를 구하기 위한 포인터 사이의 뺄셈 결과를 보관한다!
 7*	alignof()는 인자타입의 정렬을 반환하며 T와 똑같이 정렬하라는 것을 의미하기 위해 alignas(T)로도 사용한다. X를 위해 초기화되지 않은 저장공간을 준비하는 예시는 아래와 같다.
 	void user(const vector<X>& vx){
 		constexpr int bufmax=1024;
@@ -153,13 +39,4 @@
 		unitialized_copy(vx.begin(), vx.begin()+max, reinterpret_cast<X*>(buffer));//초기화되지 않은 buffer에 vx를 iterator사용 복사하는데 그 단위는 X*로 저장한다.
 		//...
 	}
-8.	주로 햇갈리는 선언은 다음과 같다. double sqrt(double);//함수 선언 extern int error_number;//변수 선언 struct User;//타입 이름 선언. 즉 이들은 다른곳에서 정의돼야 한다.
 9.	선언은 크게 specifier(static, virtual), base type(const int, vector<double>), declarator(p[7]), initializer({retunr x;}, ={7,5,3}), 선택적 접미사 함수 지정자(const, noexcept)로 나뉜다.
-10.	가려진 전역 이름은 scope resolution연산자로 사용이 가능하다. ::x=2;(전역 x사용) 참고로 가려진 지역이름을 사용할 방법은 없다.
-11.	초기화식{}은 auto에 무용화되는데 initializer_list로 추론하기 때문이다. 고로 auto는 =와 함께사용하고 나머지는 {}를 사용하는게 안전상 좋다. 이는 기본값읗 넣겠다는 의미를 수반한다.
-12.	초기화되지 않은 값이 좋은 경우는 유일하게 대규모 입력 버퍼에 대해서인데, 불필요하게 큰 범위를 초기화하여 성능타격을 감수할 필요가 없기 때문이다.
-	constexpr int max=1024*1024;
-	char buf[max];
-	some_stream.get(buf, max);//초기화 없이 사용 char buf[max]{}; X
-13.	default constructor가 없는 사용자 정의 타입은 (stack에 할당된) default setting으로 초기화되지 않는다. 만약 기본타입지역변수나 new로 생성된 기본제공타입의 객체 초기화는 {}를 사용한다. int* p{new int{10}};
-14.	선언문에서 ()은 항상 함수를 의미한다. complex<double> z1(1, 2); complex<double> f1(); complex<double> z2{1,2}; complex<double> f2{};
