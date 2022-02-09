@@ -1,97 +1,25 @@
 	[표현식]
-3.	단항&대입 연산자는 right-associative를 가지며 그 외는 모두 left-associative를 가진다. 문자의 시퀸스 중 가능한 한 긴 것이 토큰으로 만들어지기 위해 선택되는데 이를 Max Munch Rule이라 부른다(ex. a+++1 == a++ +1) 참고로 a++은 좌변값이 아니다.
-4.	기본소스 문자 집합의 일부 문자는 키워드로 대체 표시할 수 있다. and, and_eq, bitand, bitor, compl, not, not_eq, or, or_eq, xor, xor_eq (ex. int x4=compl(x1 bitor x2) bitand x3;). 주의할 점은 and=와 and_eq, &=가 같지 않다는 것이다.
+3.	문자의 시퀸스 중 가능한 한 긴 것이 토큰으로 만들어지기 위해 선택; Max Munch Rule이라 부른다(ex. a+++1 == a++ +1) 참고로 a++은 좌변값이 아니다.
 5.	객체의 읽기와 쓰기를 동시에 처리하는 표현식은 명확하게 정의해주는 단독 연산자를 사용하거나, ,&&||등으로 명시적으로 표현할 때만 작성해야한다.(v[i]=i++; 정의되지 않은 결과!)
-6.	임시객체의 수명은 자신이 생성된 전체 표현식이 끝날 때 소멸되기에 포인터 사용은 위험하다.
-	void f(string& s1, string& s2, string& s3){
-		const char* cs=(s1+s2).c_str();
-		cout<<cs;
-		if(8<strlen(cs=(s2+s3).c_str())&&cs[0]=='a')//(s2+s3)에서임시객체사 사용되는데 이를 pointer cs가 가리킨다. 이 임시객체의 전체 표현식은 if전부이며 이탈후 사용하면 const기에 실행(컴파일)은 되지만 이미 소멸된 임시객체이다.
-			//cs use this _WARNING_.
-	}//참고로 임시객체의 이동도 표현식이 끝나면 소멸되기에 그냥 코드 명시적인 이동을 표현한다.
-7.	상수표현식을 이용하여 초키화가 컴파일 타임에 수행될 경우 멀티스레드 시스템에서 데이터 경합을 방지할 수 있다. 
-8.	const와 constexpr은 다르다. const변수에 sqrt같은 함수로 값을 담아도 그 함수가 constexpr함수가 아니라면 constexpr변수에 담을 수 없다. const string로 리터럴이 아니기에 constexpr로 담을 수 없다.
-	constexpr생성자를 가진 클래스를 literal type이라고 부른다. 이를 위해선 생성자의 본체는 비어있어야하며 모든 맴버가 상수 표현식에 의해 초기화돼야 한다. constexpr은 컴파일 타임 함수형 프로그래밍 언어의 축소판을 제공한다.
-9.	주소 상수 표현식에서 주의할 점은 전역변수같이 정적으로 할당된 객체의 주소의 값은 컴파일러가 아닌 링커에 의해 할당되기에 컴파일러는 그 값을 알 수 없다. constexpr const char* p1="asdf"; constexpr const char* p2=p1+2;//ERROR!
-10.	값을 보존하는 암시적 변환을 type promotion이라 하며 산술연산에선 주로 integral promotion이 사용된다. 만약 축소우려가 있는 변환을 피할 수 없다면 narrow_cast<>()같은 런타임 체크 변환 함수형식을 고려해보아야 한다.
-	T*는 const T*로 암시적으로 변환이 가능하다. T&역시 const T&로 변환이 가능하다.
-11.	cast시에 명시적 체크 코드를 삽입할 수도 있다. char c=i; if(i!=c) throw std::runtime_error{"int-to-char check failed"}; 만약 이식성이 보장되는 선에서 손실을 허용하려면 nemeric_limits를 활용해야한다. (DBL_MAX, FLT_MAX같은 상수)
-12.	integral promotion규칙때문에 부호없는 정수와 부호있는 정수를 섞지 않는 것이 매우 좋다.
+7.	상수표현식을 이용하여 초키화가 컴파일 타임에 수행될 경우 멀티스레드 시스템에서 데이터 경합을 방지할 수 있다. (재귀적 구조나 교착상태가 아닌이상 static 지역변수의 초기화는 데이터 경합으로 이어지지 않는다. 즉 C++구현은 static초기화를 보호한다.)
+8.	constexpr생성자를 가진 클래스를 literal type이라고 부른다. 생성자의 본체는 비어있어야하며 모든 맴버가 상수 표현식에 의해 초기화돼야 한다. (const보다 constexpr이 더 큰 개념)
+9.	주소 상수 표현식에서 전역변수같이 정적으로 할당된 객체의 주소의 값은 컴파일러가 아닌 링커에 의해 할당되기에 컴파일러는 그 값을 알 수 없다. constexpr const char* p1="asdf"; constexpr const char* p2=p1+2;//ERROR!
 
 	[선택 연산]
-1.	스트림 상태 플래그는 스트림 구현의 외부에서 관찰 가능하기에 아래의 코드를 통해 두 스트림의 상태가 어떻게 다른지를 확인할 수 있다.
-	int old=cin.rdstate();
-	if(cin.rdstate()^old){}
-2.	설명은 생략한다. throw 표현식이다. void fct(int* p){ int i=(p)?*p: throw std::rundtimie_error{"unexpected nullptr"}; }
-3.	c스타일 문자열 복사에 while(*p++=*q++)꼴을 사용할 수 있다. 다만 표준 라이브러리를 사용하는 것이 좋은게 인라인화돼 있을 수 있고, 특수한 기계어를 통하여 구현돼 있을 가능성이 있기 때문이다.
-4.	free store에 할당된 객체의 기본 초기화를 확실히 하려면 =이 아닌 {}을 사용해야 한다. 참고로 기본 제공 타입은 기본 생성자가 없기에(객체가 아닌 primitive이기에) 자동으로 초기화되지 않는다.
-5.	free store의 주된 문제점은 leaked object, premature deletion, double deletion이다.
-	int* p1=new int{99};
-	int* p2=p1;
-	delete p1;//p2는 유효하지 않은 객체를 아직 가리키고 있지만 컴퓨터는 delete를 통해 그 메모리를 정상적으로 재사용이 가능하다고 판단.
-	char* p3=new char{'x'};//p3은 p2가 현재 가리키고 있는 메모리의 일부를 가리킨다.(정상적으로 delete되었다고 컴퓨터는 생각하기에)
-	cout<<*p3<<'\n';//x 출력 불가.
-6.	free store의 문제를 막기 위해선 사용을 자제하는 것이 좋은데, 대규모 객체를 얻기 위한 목적이라면 move를 사용하면 좋다. 또한 new는 할당된 객체의 크기를 알 수 있어야 하기에 정적 객체보다 약간 더 많은 공간을 차지한다. 이는 작은 다수의 객체저장시 문제가 된다.
-	또한 지역 객체 생성에는 효율성과 오류의 최적화를 위해 new의 사용을 자제하고 scope를 이탈시 자동 소멸되도록 지역 변수를 그냥 사용하자. 참고로 operator new()와 operator new[]()의 표준 구현은 반환된 메모리를 초기화하지 않는다. 초기화는 {}에서 이루어진다.
-7.	new가 할당된 공간을 찾지못하여 bad_alloc예외를 던질때 어떤 작업을 진행할지를 지정하는 set_new_handler(my_new_handler)을 정의하면 좋다. 참고로 new연산자를 오버로딩하기보단 operator news()를 추가정의하는 방식이 더 좋다. new는 일반적인 유효범위규칙을 준수하기에 그 자체를 오버로딩하긴 아깝다.
-8.	operatoe new()에 추가 인자를 전달하는 new(buf) X문법을 placement syntax라고 한다. 또한 new는 암시적으로 일반적인 인자 매칭 규칙에 따라 첫번째 인자 size_t를 통해 크기를 전달하고, void*를 통해 주소를 가리킨다.
-	placement delete는 가비지 컬렉터에게 delete된 포인터가 더이상 안전하게 파생되지 않는다는 점을 알려주는 것 외에 아무일도 하지 않는다.
-9.	new와 delete에 nothrow를 인자로 보냄으로서 noexcept버전의 new와 delete를 사용할 수 있다(우리가 정의하여? 아마..). int* p=new(nothrow) int[n];, operator delete(p, nothrow);
-10. initializer_list는 불변적이기에 move로 사용해야한다. 또한 struct를 {}를 이용하여 멤버변수를 차례로 초기화 하는 방법은 한정 리스트의 사용이라고한다. struct S{int a,b;};  v=S{7, 8};//한정리스트를 이용한 대입
-11.	무한정리스트(unqualified list)_{}는 무한을 뜻하는 것이 아니라 예상되는 타입이 명확히 알려진 경우에 사용한다. 예로 Matrix객체를 초기화할때 m[{2,3}]처럼 Matrix객체 m이 첨자로 값 쌍을 받는다고 가정할 때 사용할 수 있다.
-	template<typename T> void f(T)에 무한정 리스트 {}, {1}등을 넣어 추론이 불가능핟. 컨테이너도 마찬가지이다. void f2(const vector<T>&); f2({1,2,3}); 다음과 같이 사용하면 가능하다. f2(vector<int>{1,2,3});
-12.	{}리스트 타입은 모든 원소가 동일한 타입일 경우에만 auto에 의한 추론이 가능하며, 원소가 없는 경우는 모호하기에 기본 생성자에 의해 처리돼야 한다. auto x0={};//error!
-13.	람다에서의 선택적인 mutable지정자는 람다 표현식의 본체가 람다의 상태를 변경할 수 있는지를 알려준다. 람다로 부터 생성되는 클래스의 객체를 closure object(정확한 타입이 정의되지 않는 객체)라고 한다. 즉 소스에서는 람다, 런타임시 람다는 클로저 객체로 부른다. (가장 짧은 람다[]{})
-	auto를 통하여 람다에 이름을 붙일 수 있다(함수 포인터처럼..사용), [], [&], [=], [capture-list], [&, capture-list](this 포함 가능), [=, capture-list](this포함 불가)
-	 람다의 단점은 자신의 호출자보다도 오래 살아남을 수 있다. 고로 다른 스레드로 람다를 전달할때에는 값에 의한 캡쳐[=]를 사용하는 것이 좋다. 만약 그러한 가능성이 있는 경우 모든 지역정보가 클로저 객체로 복사되고 값들이 return을 통해 적절한 인자로 반환되야한다. m.add("draw triangle", [=]{m.draw(p1, p2, p3);}
-	캡쳐에 가변인자템플릿 역시 사용이 가능하다. auto helper=[&s, &v]{return s*(h1(v...)+h2(v...));}
+6.	대규모 객체를 얻기 위한 목적이라면 move를 사용하면 좋다. 또한 new는 할당된 객체의 크기를 알 수 있어야 하기에 정적 객체보다 약간 더 많은 공간을 차지한다. 이는 작은 다수의 객체저장시 문제가 된다. 웬만하면 그냥 지역변수 사용하자.
+7.	new연산자를 오버로딩하기보단 operator news()를 추가정의하는 방식이 더 좋다.
+8.	operatoe new()에 추가 인자를 전달하는 new(buf) X문법을 placement syntax라고 한다. placement delete는 가비지 컬렉터에게 delete된 포인터가 더이상 안전하게 파생되지 않는다는 점을 알려주는 것 외에 아무일도 하지 않는다.
+9.	noexcept버전의 new와 delete를 사용할 수 있다. int* p=new(nothrow) int[n];, operator delete(p, nothrow);
+11.	무한정리스트(unqualified list)_{}는 무한을 뜻하는 것이 아니라 예상되는 타입이 명확히 알려진 경우에 사용한다.
+13.	람다에서의 선택적인 mutable지정자는 람다 표현식의 본체가 람다의 상태를 변경할 수 있는지를 알려준다. 람다는 자신의 호출자보다도 오래 살아남을 수 있기에 값에 의한 캡쳐[=]를 사용하는 것이 좋다.
 14.	아무것도 캡쳐하지 않는 람다는 적절한 함수포인터에 대입될 수 있다. 람다의 타입은 function<>을 이용하여 명시하는 것이 아닌이상 추론이 안되기에 재귀적인 사용이 불가능하다.
-15.	static_cast_연관돼 있는 타입 간의 변환, reinterpret_cast_관련 없는 타입 간의 변환(인자와 같은 비트 패턴을 가진 새로운 타입의 값을 제작. 함수포인터에 대해 사용돼야 하는 종류), const_cast const와 volatile에서 차이가 있는 타입 간의 변환(상수성제거), dynamic_cast_클래스 계층 구조 속으로의 런타임 체크 변환
-16.	C스타일 캐스트(함수 스타일 캐스트)를 이용하여 해당 클래스의 비공개 기반 클래스로의 캐스팅이 가능하다.(해킹가능) 
 
 	[함수]
-1.	함수는 가독성이 좋아야 한다. 프로그래밍 실력에 비례하여 최대 조건을 40줄정도에서 7줄정도까지 줄여보자. 함수 선언문에서 사용할 수 있는 다양한 지정자와 수정자중 대표적으로 [[noreturn]]과 final(상속방지), [[carries_dependency]]이 있다. [[]]는 attirubute라고 부르며 C++문법 거의 어디에나 넣을 수 있다. 
-	다음은 읽는 사람에게 두통을 일으키는 함수의 선언이다. struct S{ [[noreturn]] virtual inline auto f(const unsigned long int *const) volite -> void const noexcept; }
-2.	오버로딩 규칙을 이참에 숙지해보도록 하자. 정확한 일치->타입 승격을 통한 일치(축소X)->표준 변환을 위한 일치(축소O)->사용자 정의 일치 (참고로 오버로딩에서 반환값은 고려되지 않는다.) 오버로딩 규칙을 숙지함으로서 불필요한 case-by-case인자 함수를 줄일 수 있다.
-	1) 자신과 타입이 정확히 일치하는 함수를 찾는다.
-	2) 정확히 일치하는 타입이 없는 경우 다음과 같은 형변환을 통하여 일치하는 함수를 찾는다.(char,unsigned char, short를 int로)(unsigned short는 int크기에따라 int혹은 unsigned int로)(float은 double로)(Enum은 int로)
-	3) 좀 더 포괄적인 형변환을 통해 일치하는 함수를 찾는다.(numeric타입, enum은 다른 숫자타입으로)(0을 포인터타입이나 숫자타입으로)(포인터는 void포인터로)
-	4) 유저 정의된 타입 변환으로 일치하는 것을 찾는다.
-		-ambiguous 오류 발생
+1.	attribute로는 [[noreturn]]과 final(상속방지), [[carries_dependency]]_memory_order정보가 포한되어있다_이 있다.
 3.	생성자는 기술적으로 함수가 아니며 소멸자는 오버로딩될 수 없다. 둘의 주소는 알아낼 수 없다.
-4.	값을 반환하지 않는 함수는 void라는 반환타입을 갖는다. 이전에도 말했듯이 함수에서 지역변수 포인터를 반환하지 않게 유의한다.
-5.	매번 인라인함수가 호출될때마다 무조건 인라인화하는 것을 보장할 수 없기 때문에 constexpr을 권장한다. constexpr생성자를 가진 리터럴 타입을 이용하여 사용자 정의 타입을 이용하는 constexpr함수를 정의할 수 있다. constexpr함수에서 reference나 pointer반환이 가능하지만 constexpr함수의 의미를 생각하여 지양하자.
-6.	attribute인 carries_dependency는 memory_order의 종속성 체인이 함수 안밖으로 공유된다는 것을 말하며 불필요한 펜스를 제거함으로써 보다 나은 코드를 제작하게 한다. 다른 속성으론 [[maybe_unused]], [[deprecated("reason")]]등이 있다.
-7.	재귀적 구조나 교착상태가 아닌이상 static 지역변수의 초기화는 데이터 경합으로 이어지지 않는다. 즉 C++구현은 static초기화를 보호한다.
-8.	대규모 객체 이동때문에 pointer나 reference를 사용하게 된다면 불필요한 이동을 줄이기 위한 점이라는 것을 명확히 표시해주고, const로 선언하며 변경불가능하게 하자.
-9.	void f(int(&r)[4]);처럼 원소의 개수는 참조자 타입의 일부이기에 명시해주면 일반적인 배열처럼 reference의 사용이 가능하다. 이는 원소의 개수가 곧바로 추론될 수 있게 하는 템플릿에서 유용하게 사용된다. template<typename T, int N> void f(T (&r)[N]).
-10.	대부분 {}를 사용하면 initializer_list인자를 가지는 생성자가 우선을 갖지만, initializer_list의 원소 타입이 각기 다를 경우 {}이더라도 다른 함수가 우선순위를 갖는다. 주로 타입은 같지만 길이를 모를 때 사용하자.
-11.	argc, argv[]를 이용하는 error함수는 va_list, (va_start, va_end), va_arg를 이용하여 구현하는 방법과, argv를 initializer_list를 활용하여 {}로 표현하는 경우가 있다. const vector<string>도 사용이 가능하다. vector는 STL이기에 더 안전하다.
-12. 함수의 인자에서 default argument value를 setting하고 싶다면 뒤쪽부터 설정해야 한다.
-13.	함수가 호출될 때 유효하리가 예상하는 논리적 기준을 precondition(~을 반환)이라 부르고, 반환할때 유효하리라 하는 기준을 postcondition(반환값을 ~한 값)이라고 한다. 코더는 pre&post condition을 고려하여 아래와 같은 함수의 설계가 가능하다.
-	-모든 입력이 유효하게 강제(선행조건이 필요X), 선행조건이 유효하다고 가정(호출자를 신뢰), 선행조건체크후 다르면 예외, 선행조건체크후 다르면 강제종료. 후행조건이 충족되지 않으면 프로그래머의 잘못인것이다.(체크되지 않은 선행조건이 있다던가..)
-14.	함수포인터는 전체 타입이 정확히 일치해야하며 타 함수 포인터로의 변환이 가능하지만 다시 원래도 되돌리지 않으면 이상작동이 발생할 수 있다. comp함수는 void*를 반환하기에 최소 값이 아닌 *을 전달해야한다. by casting
-	또한 함수 포인터에 초기화 혹은 대입하므로써 오버로딩함수의 주소를 얻을 수 있고, noexcept함수의 경우 noexcept포인터로 받을 수 있다. 또한 함수포인터는 함수링크를 고려해야하기에 타입별칭이나 링크관계지정이 등장할 수 없다.(extern, using pv=func~)
-15.	매크로는 조건부 컴파일이나 include guard에서만 사용하자. 또한 이들보다 constexpr, auto, const, decltype, enum, inline, lambda, namespace, template이 훨씬 좋다. #undef X는 X가 존재하든말든 정의되지 않게 보장해준다. 매크로는 가변인자를 가질수있지만 그냥 constexpr같은거 사용하자.
-	쓸모있는 이미 정의된 매크로는 다음과 같다. __cplusplus, __LINE__
-16.	pragma는 표준이 제공하는 것을 넘어서는 기능을 제공하기도 하며 이는 최대한 피하자.
+13.	함수가 호출될 때 유효하리가 예상하는 논리적 기준인 precondition(~을 반환), 반환할때 유효하리라 하는 기준 postcondition(반환값을 ~한 값)을 고려하여 경우별로 보다 효율적인 함수 설계를 하자.(호출자를 신뢰, 신뢰X등등..)
+14.	함수 포인터에 초기화 혹은 대입하므로써 오버로딩함수의 주소를 얻을 수 있고, noexcept함수의 경우 noexcept포인터로 받을 수 있다. 또한 함수포인터는 함수링크를 고려해야하기에 타입별칭이나 링크관계지정이 등장할 수 없다.(extern, using pv=func~)
+16.	pragma는 표준이 제공하는 것을 넘어서는 기능을 제공하기도 하며 이는 최대한 피하자.(운영체제 별 컴파일러 기능)
 
 	[예외 처리] exception safety guarantee, Resource Acquisition Is Initialization
-1.	예외는 특정한 종류의 오류에 해당하는 클래스를 정의한 후 그것을 던지는 방법이 예외정의의 간단한 방법이다. 이로서 오류에 대한 정보를 옮길 수 있다.
-2.	전통적인 예외처리는 exit(1), 오류값을 반환, 합법적인 값 반환후 오류상태로 방치(errno_대신 병행성보장 X), something_handler()를 통해 고쳐보고 안되면 종료, 치명적인게 아니면 운에 기대어 버티기(디버깅에 용이). --전통적방법의고질적인모순-->오류처리함수가 문제처리가 가능하다면 그게 오류인가? 
-3.	예외처리는 오류처리이다. 그렇기에 코드는 통상적인 코드와 오류처리 코드로 분류되며, 이러한 간단한 모델이 예외의 활용에 밑바탕에서 예외 메커니즘의 구현이 최적화된다. 아래는 지양되는 방법이지만 너무 참신하여 예시로 남겨주겠다.
-	void fnd(Tree* p, const string& s){
-		if(s==p->str) throw p;//p발견
-		if(p->left) fnd(p->left, s);//recursive_traversal
-		if(p->right) fnd(p->right, s);
-	}
-	Tree find(Tree* p, const string& s){
-		try{
-			fnd(p, s);
-		} catch(Tree* q){//catch를 값 반환에 사용.
-			return q;
-		}
-		
-		return 0;
-	}
-4.	예외를 사용할 수 없는 경우도 존재하는데, 임베디드 시스템에서 시간 핵심인 구성에서는 catch전파시 소요시간이 균일하지 않기에 사용을 못하며, 오래된 대규모 프로그램의 경우이다. 이때는 전통적인 기법으로 돌아갈 수 밖에 없다.
+4.	예외를 사용할 수 없는 경우로는 임베디드 시스템에서 시간 핵심인 구성에서는 catch전파시 소요시간이 균일하지 않기에 사용을 못하다.
